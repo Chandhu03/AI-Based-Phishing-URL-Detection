@@ -1,18 +1,3 @@
-"""
-PHISHING URL DETECTOR — WEB APP
-=================================
-A Streamlit web app for your ECE 569A demo.
-
-HOW TO RUN LOCALLY:
-    streamlit run app.py
-
-HOW TO DEPLOY (FREE):
-    1. Push to GitHub
-    2. Go to https://share.streamlit.io
-    3. Connect your GitHub repo
-    4. Deploy — done!
-"""
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -22,18 +7,18 @@ import os
 import re
 from urllib.parse import urlparse
 
-# =========================================================
+
 # PAGE CONFIG
-# =========================================================
+
 st.set_page_config(
     page_title="Phishing URL Detector",
     page_icon="🔒",
     layout="centered",
 )
 
-# =========================================================
+
 # FEATURE EXTRACTION (same logic as step1)
-# =========================================================
+
 def extract_url_features(url):
     """Extract features from a raw URL string for the demo."""
     features = {}
@@ -73,9 +58,9 @@ def extract_url_features(url):
     return features
 
 
-# =========================================================
+
 # LOAD MODEL
-# =========================================================
+
 @st.cache_resource
 def load_model():
     """Load the trained model, scaler, and feature names."""
@@ -97,9 +82,9 @@ def load_metrics():
         return json.load(f)
 
 
-# =========================================================
+
 # MAIN APP
-# =========================================================
+
 def main():
     # --- Header ---
     st.title("🔒 Phishing URL Detector")
@@ -143,8 +128,6 @@ def main():
         feature_df = pd.DataFrame([features])
 
         # Align features with model's expected columns
-        # If model was trained on Kaggle (48 features), we can only use
-        # models trained on our own features (18 features)
         try:
             feature_values = feature_df[feature_names]
         except KeyError:
