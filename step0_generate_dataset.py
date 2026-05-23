@@ -2,16 +2,14 @@
 STEP 0: Generate a synthetic phishing URL dataset for development.
 =====================================================================
 WHY THIS EXISTS:
-- Kaggle datasets require you to sign in and download manually.
+
 - This script creates a realistic fake dataset so you can develop
   and test your code RIGHT NOW.
-- When you download the real dataset from Kaggle, just replace
-  the CSV file and everything else stays the same.
-
+  
 WHAT IT CREATES:
 - 10,000 URLs (5,000 phishing + 5,000 legitimate)
 - Each URL is labeled: 1 = phishing, 0 = legitimate
-- Saved as dataset/urls.csv
+
 """
 
 import random
@@ -91,7 +89,7 @@ def generate_phishing_url():
     """Generate a realistic phishing URL."""
     protocol = random.choice(["http://", "https://", "http://www."])
     
-    # Various phishing URL patterns
+   
     pattern = random.choice(["keyword_combo", "brand_fake", "ip_based", "long_subdomain"])
     
     if pattern == "keyword_combo":
@@ -102,7 +100,7 @@ def generate_phishing_url():
         domain = sep.join(parts + [brand]) + random.choice(phishing_tlds)
         
     elif pattern == "brand_fake":
-        # e.g., paypal-security.com.verify-account.xyz
+      
         brand = random.choice(phishing_brands)
         keyword = random.choice(phishing_keywords)
         fake_ext = random.choice([".com", ".org", ".net"])
