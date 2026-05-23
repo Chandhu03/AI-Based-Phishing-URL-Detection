@@ -1,5 +1,5 @@
 # Phishing URL Detection — ECE 569A AI Project
-## Complete Beginner's Guide
+
 
 ---
 
@@ -9,7 +9,7 @@ A program that looks at a website link (URL) and predicts:
 
 ---
 
-## How to run (4 commands, that's it)
+## How to run 
 
 ```bash
 # Step 0: Generate a practice dataset (replace with Kaggle data later)
@@ -66,39 +66,16 @@ phishing_project/
 
 ## IMPORTANT: Using a real Kaggle dataset
 The synthetic dataset gives perfect (100%) accuracy because the
-patterns are too obvious. For your actual submission:
-
-1. Go to https://www.kaggle.com/datasets/shashwatwork/phishing-dataset-for-machine-learning
-   or search "phishing URL dataset" on Kaggle
-2. Download the CSV file
-3. Make sure it has columns: "url" and "label" (0=safe, 1=phishing)
-4. Replace dataset/urls.csv with the downloaded file
-5. Re-run steps 1-4
-
-With real data you'll get realistic scores like 93-97% accuracy,
-which is what professors expect to see.
+patterns are too obvious.
 
 ---
 
-## What each team member should own
+## What each team member should do
 
 | Member | Responsibility | Files |
 |--------|---------------|-------|
-| Member 1 | Dataset + Feature Extraction | step0, step1 |
+|Chandhu Allam | Dataset + Feature Extraction | step0, step1 |
 | Member 2 | Model Training + Tuning | step2 |
 | Member 3 | Visualization + Report + Demo | step3, step4 |
 
 ---
-
-## Key terms explained (for the presentation)
-
-- **Feature**: A measurable fact about a URL (its length, number of dots, etc.)
-- **Training**: Showing the model thousands of labeled examples so it learns patterns
-- **Testing**: Checking the model on URLs it has never seen before
-- **Accuracy**: % of predictions that were correct
-- **Precision**: When the model says "phishing", how often is it right?
-- **Recall**: Out of all actual phishing URLs, how many did it catch?
-- **F1-Score**: A single number balancing precision and recall
-- **ROC/AUC**: How well the model ranks phishing URLs above safe ones (1.0 = perfect)
-- **Cross-validation**: Training 5 times on different splits to confirm results aren't lucky
-- **Feature importance**: Which URL characteristics are most useful for detection
