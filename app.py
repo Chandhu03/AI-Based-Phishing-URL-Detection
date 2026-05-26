@@ -92,12 +92,6 @@ div.stButton > button {
     font-weight: 600;
 }
 
-/* Dataframe */
-[data-testid="stDataFrame"] {
-    border-radius: 15px;
-    overflow: hidden;
-}
-
 /* Sidebar */
 section[data-testid="stSidebar"] {
     background-color: #0b1120;
@@ -109,7 +103,7 @@ section[data-testid="stSidebar"] {
     font-weight: 600;
 }
 
-/* Hide streamlit footer */
+/* Hide footer */
 footer {
     visibility: hidden;
 }
@@ -122,10 +116,12 @@ footer {
 # =========================================================
 
 def extract_url_features(url):
+
     features = {}
 
     try:
         parsed = urlparse(url)
+
     except Exception:
         parsed = urlparse("http://error.com")
 
@@ -140,10 +136,21 @@ def extract_url_features(url):
     features["num_hyphens"] = domain.count("-")
     features["num_subdomains"] = domain.count(".")
     features["has_https"] = 1 if parsed.scheme == "https" else 0
-    features["has_ip"] = 1 if re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", domain) else 0
+
+    features["has_ip"] = 1 if re.search(
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
+        domain
+    ) else 0
+
     features["has_at_symbol"] = 1 if "@" in url else 0
-    features["num_special_chars"] = sum(1 for c in url if c in "!#$%^&*()=+[]{}|;:',<>?")
-    features["digits_in_domain"] = sum(1 for c in domain if c.isdigit())
+
+    features["num_special_chars"] = sum(
+        1 for c in url if c in "!#$%^&*()=+[]{}|;:',<>?"
+    )
+
+    features["digits_in_domain"] = sum(
+        1 for c in domain if c.isdigit()
+    )
 
     suspicious_tlds = [
         ".xyz", ".tk", ".ml", ".ga", ".cf", ".gq",
@@ -151,7 +158,10 @@ def extract_url_features(url):
         ".buzz", ".link", ".click"
     ]
 
-    features["suspicious_tld"] = 1 if any(domain.endswith(tld) for tld in suspicious_tlds) else 0
+    features["suspicious_tld"] = 1 if any(
+        domain.endswith(tld)
+        for tld in suspicious_tlds
+    ) else 0
 
     url_lower = url.lower()
 
@@ -171,7 +181,10 @@ def extract_url_features(url):
 @st.cache_resource
 def load_model():
 
-    results_dir = os.path.join(os.path.dirname(__file__), "results")
+    results_dir = os.path.join(
+        os.path.dirname(__file__),
+        "results"
+    )
 
     with open(os.path.join(results_dir, "best_model.pkl"), "rb") as f:
         model = pickle.load(f)
@@ -184,11 +197,13 @@ def load_model():
 
     return model, scaler, feature_names
 
-
 @st.cache_resource
 def load_metrics():
 
-    results_dir = os.path.join(os.path.dirname(__file__), "results")
+    results_dir = os.path.join(
+        os.path.dirname(__file__),
+        "results"
+    )
 
     with open(os.path.join(results_dir, "metrics.json")) as f:
         return json.load(f)
@@ -244,7 +259,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # =====================================================
-    # METRICS ROW
+    # METRICS
     # =====================================================
 
     col1, col2, col3 = st.columns(3)
@@ -272,7 +287,7 @@ def main():
         return
 
     # =====================================================
-    # URL INPUT CARD
+    # INPUT SECTION
     # =====================================================
 
     st.markdown('<div class="glass">', unsafe_allow_html=True)
@@ -315,28 +330,28 @@ def main():
 
         feature_df = pd.DataFrame([features])
 
-# Align features safely with trained model
+        # Align missing features
+        for feature in feature_names:
+            if feature not in feature_df.columns:
+                feature_df[feature] = 0
 
-for feature in feature_names:
-    if feature not in feature_df.columns:
-        feature_df[feature] = 0
+        feature_values = feature_df[feature_names]
 
-feature_values = feature_df[feature_names]
-scaled = scaler.transform(feature_values)
+        scaled = scaler.transform(feature_values)
 
-prediction = model.predict(scaled)[0]
+        prediction = model.predict(scaled)[0]
 
-probabilities = model.predict_proba(scaled)[0]
+        probabilities = model.predict_proba(scaled)[0]
 
-if prediction == 1:
-    phishing_prob = probabilities[1]
-    label = "PHISHING"
-    confidence = phishing_prob
+        if prediction == 1:
+            phishing_prob = probabilities[1]
+            label = "PHISHING"
+            confidence = phishing_prob
 
-else:
-    phishing_prob = probabilities[1]
-    label = "SAFE"
-    confidence = 1 - phishing_prob
+        else:
+            phishing_prob = probabilities[1]
+            label = "SAFE"
+            confidence = 1 - phishing_prob
 
         # =================================================
         # RESULT CARD
@@ -369,7 +384,7 @@ else:
             )
 
         # =================================================
-        # FEATURE BREAKDOWN
+        # FEATURE DETAILS
         # =================================================
 
         with st.expander("🔍 Why did the AI make this prediction?"):
@@ -459,7 +474,10 @@ else:
 
     st.markdown("## 📈 AI Visualization Dashboard")
 
-    results_dir = os.path.join(os.path.dirname(__file__), "results")
+    results_dir = os.path.join(
+        os.path.dirname(__file__),
+        "results"
+    )
 
     chart_files = {
         "📊 Model Comparison": "model_comparison.png",
