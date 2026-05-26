@@ -367,10 +367,9 @@ def main():
                 f"⚠️ PHISHING DETECTED — Confidence: {confidence*100:.1f}%"
             )
 
-            st.progress(
-                confidence,
-                text=f"Threat probability: {confidence*100:.1f}%"
-            )
+            st.write(f"Threat probability: {confidence*100:.1f}%")
+            st.progress(confidence)
+                        )
 
         else:
 
@@ -378,9 +377,8 @@ def main():
                 f"✅ URL appears SAFE — Confidence: {confidence*100:.1f}%"
             )
 
-            st.progress(
-                confidence,
-                text=f"Safety confidence: {confidence*100:.1f}%"
+            st.write(f"Safety confidence: {confidence*100:.1f}%")
+            st.progress(confidence)
             )
 
         # =================================================
