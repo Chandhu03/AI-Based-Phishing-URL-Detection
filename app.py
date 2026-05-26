@@ -369,7 +369,7 @@ def main():
 
             st.write(f"Threat probability: {confidence*100:.1f}%")
             st.progress(confidence)
-            )
+            
 
         else:
 
@@ -379,7 +379,7 @@ def main():
 
             st.write(f"Safety confidence: {confidence*100:.1f}%")
             st.progress(confidence)
-            )
+            
 
         # =================================================
         # FEATURE DETAILS
