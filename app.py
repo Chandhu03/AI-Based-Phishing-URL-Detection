@@ -315,13 +315,13 @@ def main():
 
         feature_df = pd.DataFrame([features])
 
-        try:
-            feature_values = feature_df[feature_names]
+# Align features safely with trained model
 
-        except KeyError:
-            st.warning("⚠️ Feature mismatch detected.")
-            return
+for feature in feature_names:
+    if feature not in feature_df.columns:
+        feature_df[feature] = 0
 
+feature_values = feature_df[feature_names]
         scaled = scaler.transform(feature_values)
 
         prediction = model.predict(scaled)[0]
