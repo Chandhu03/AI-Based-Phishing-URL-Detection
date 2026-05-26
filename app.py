@@ -445,18 +445,37 @@ def main():
             probabilities = model.predict_proba(scaled)[0]
  
             # =====================================================
-            # CRITICAL: Kaggle dataset label encoding
-            #   0 = Phishing
-            #   1 = Legitimate
+            # DYNAMIC LABEL MAPPING
+            # Works regardless of which step2 trained the model:
+            #   step2_train_models.py:        label 0=legit, 1=phishing
+            #   step2_train_models_kaggle.py: CLASS_LABEL 0=phishing, 1=legit
+            #
+            # model.classes_ tells us the actual class order.
+            # We find which index corresponds to the "phishing" class.
             # =====================================================
-            if prediction == 0:
-                phishing_prob = probabilities[0]
+            classes = list(model.classes_)
+ 
+            # Determine which dataset was used based on feature count
+            # Kaggle model has 48 features: CLASS_LABEL 0=phishing, 1=legit
+            # Synthetic model has 18 features: label 0=legit, 1=phishing
+            if len(feature_names) > 20:
+                # Kaggle model: class 0 = phishing, class 1 = legitimate
+                phishing_class = 0
+            else:
+                # Synthetic model: class 0 = legit, class 1 = phishing
+                phishing_class = 1
+ 
+            phishing_idx = classes.index(phishing_class)
+            legit_idx = 1 - phishing_idx
+ 
+            phishing_prob = probabilities[phishing_idx]
+ 
+            if prediction == phishing_class:
                 label = "PHISHING"
                 confidence = phishing_prob
             else:
-                phishing_prob = probabilities[1]
                 label = "SAFE"
-                confidence = phishing_prob
+                confidence = probabilities[legit_idx]
  
             # Clamp confidence for progress bar
             conf_int = max(0, min(100, int(confidence * 100)))
