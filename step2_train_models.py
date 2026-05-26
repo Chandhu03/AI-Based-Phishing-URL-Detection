@@ -1,25 +1,5 @@
 """
 STEP 2: Train Machine Learning Models
-=======================================
-This is where the "AI" part happens.
-
-WHAT DOES "TRAINING" MEAN?
-    Imagine showing a child 8,000 flashcards:
-    - Front: a URL's features (numbers)
-    - Back: "phishing" or "safe"
-    
-    After seeing 8,000 examples, the child learns patterns:
-    "Oh, if the URL is long AND has no HTTPS AND has the word 'login',
-     it's probably phishing!"
-    
-    That's exactly what training does. The algorithm finds patterns
-    in the data automatically.
-
-WHAT DOES "TESTING" MEAN?
-    After training, we show the model 2,000 NEW URLs it has never
-    seen before. We check: did it get them right?
-    
-    This tells us how well the model will work on real URLs in the future.
 
 WHAT THIS FILE DOES:
     1. Loads the features CSV from Step 1
@@ -35,13 +15,13 @@ import os
 import json
 import pickle
 
-# --- The 4 ML models we'll compare ---
+# The 4 ML models we'll compare
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-# --- Tools for splitting data and measuring performance ---
+# Tools for splitting data and measuring performance 
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
@@ -57,9 +37,8 @@ from sklearn.metrics import (
 
 
 def main():
-    # =========================================================
     # PART 1: Load the data
-    # =========================================================
+   
     data_path = os.path.join(os.path.dirname(__file__), "dataset", "features.csv")
     print("=" * 60)
     print("STEP 2: TRAINING MACHINE LEARNING MODELS")
@@ -68,7 +47,7 @@ def main():
     print(f"\nLoading features from {data_path}...")
     df = pd.read_csv(data_path)
     
-    # Separate features (X) from labels (y)
+    # Separating features (X) from labels (y)
     # X = all columns EXCEPT "label" (the numbers describing each URL)
     # y = just the "label" column (0 = legit, 1 = phishing)
     X = df.drop("label", axis=1)
@@ -100,37 +79,25 @@ def main():
     print(f"  Training set: {len(X_train)} URLs")
     print(f"  Testing set:  {len(X_test)} URLs")
     
-    # =========================================================
     # PART 3: Scale the features
-    # =========================================================
-    # WHY SCALE?
-    #   Some features have big numbers (url_length = 50-200)
-    #   and some have small numbers (has_https = 0 or 1).
-    #   
-    #   Some algorithms (especially SVM) get confused by this.
-    #   Scaling makes all features roughly the same range.
-    #   
-    #   Think of it like converting everything to the same unit.
+    
     
     print("\nScaling features...")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-    
-    # =========================================================
+
     # PART 4: Define the 4 models
-    # =========================================================
-    # Each model is a different "strategy" for finding patterns.
     
     models = {
         "Logistic Regression": LogisticRegression(
-            max_iter=1000,        # Give it enough time to learn
+            max_iter=1000,       
             random_state=42
         ),
         
         "Random Forest": RandomForestClassifier(
             n_estimators=100,     # Use 100 decision trees
-            max_depth=10,         # Don't let trees get too deep
+            max_depth=10,         
             random_state=42
         ),
         
@@ -150,9 +117,9 @@ def main():
         ),
     }
     
-    # =========================================================
+   
     # PART 5: Train and test each model
-    # =========================================================
+  
     results = {}
     roc_data = {}
     
@@ -168,7 +135,7 @@ def main():
         print(f"  ✓ Training complete")
         
         # --- Test the model ---
-        # Now show it the 2,000 URLs it has NEVER seen.
+        
         y_pred = model.predict(X_test_scaled)
         y_prob = model.predict_proba(X_test_scaled)[:, 1]  # Probability of being phishing
         
@@ -209,9 +176,9 @@ def main():
             "auc": round(roc_auc, 4),
         }
     
-    # =========================================================
+ 
     # PART 6: Cross-validation (more robust evaluation)
-    # =========================================================
+    
     print(f"\n{'=' * 60}")
     print("CROSS-VALIDATION (5-fold)")
     print("=" * 60)
@@ -224,9 +191,8 @@ def main():
         results[name]["cv_std"] = round(scores.std(), 4)
         print(f"  {name:25s}: {scores.mean():.4f} ± {scores.std():.4f}")
     
-    # =========================================================
     # PART 7: Feature importance (which features matter most?)
-    # =========================================================
+   
     print(f"\n{'=' * 60}")
     print("FEATURE IMPORTANCE (from Random Forest)")
     print("=" * 60)
@@ -244,9 +210,9 @@ def main():
         bar = "█" * int(imp * 100)
         print(f"  {feat_name:20s}: {imp:.4f} {bar}")
     
-    # =========================================================
+    
     # PART 8: Save everything for Step 3 (visualization)
-    # =========================================================
+  
     results_dir = os.path.join(os.path.dirname(__file__), "results")
     
     # Save metrics
