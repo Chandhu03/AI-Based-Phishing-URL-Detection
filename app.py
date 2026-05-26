@@ -1,3 +1,18 @@
+"""
+PHISHING URL DETECTOR — WEB APP
+=================================
+A Streamlit web app for your ECE 569A demo.
+ 
+HOW TO RUN LOCALLY:
+    streamlit run app.py
+ 
+HOW TO DEPLOY (FREE):
+    1. Push to GitHub
+    2. Go to https://share.streamlit.io
+    3. Connect your GitHub repo
+    4. Deploy — done!
+"""
+ 
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,129 +21,31 @@ import json
 import os
 import re
 from urllib.parse import urlparse
-
+ 
 # =========================================================
 # PAGE CONFIG
 # =========================================================
-
 st.set_page_config(
-    page_title="SecureMind AI",
-    page_icon="🛡️",
-    layout="wide",
+    page_title="Phishing URL Detector",
+    page_icon="🔒",
+    layout="centered",
 )
-
+ 
 # =========================================================
-# CUSTOM CSS
+# FEATURE EXTRACTION (same logic as step1)
 # =========================================================
-
-st.markdown("""
-<style>
-
-/* Main background */
-.stApp {
-    background: linear-gradient(135deg, #050816, #0b1120);
-    color: white;
-}
-
-/* Remove default top spacing */
-.block-container {
-    padding-top: 2rem;
-}
-
-/* Main title */
-.main-title {
-    text-align: center;
-    font-size: 70px;
-    font-weight: 800;
-    color: white;
-    margin-bottom: 0;
-}
-
-/* Subtitle */
-.subtitle {
-    text-align: center;
-    font-size: 22px;
-    color: #9ca3af;
-    margin-top: -10px;
-    margin-bottom: 40px;
-}
-
-/* Glass cards */
-.glass {
-    background: rgba(255,255,255,0.05);
-    padding: 25px;
-    border-radius: 20px;
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.08);
-    margin-bottom: 20px;
-}
-
-/* Metric cards */
-.metric-card {
-    background: rgba(255,255,255,0.06);
-    padding: 20px;
-    border-radius: 18px;
-    text-align: center;
-}
-
-/* Text input */
-[data-testid="stTextInput"] input {
-    background-color: rgba(255,255,255,0.08);
-    color: white;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.1);
-    height: 50px;
-}
-
-/* Buttons */
-div.stButton > button {
-    background: linear-gradient(90deg, #00c6ff, #0072ff);
-    color: white;
-    border-radius: 12px;
-    height: 3em;
-    width: 100%;
-    font-size: 16px;
-    border: none;
-    font-weight: 600;
-}
-
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background-color: #0b1120;
-}
-
-/* Tabs */
-.stTabs [data-baseweb="tab"] {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-/* Hide footer */
-footer {
-    visibility: hidden;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# =========================================================
-# FEATURE EXTRACTION
-# =========================================================
-
 def extract_url_features(url):
-
+    """Extract features from a raw URL string for the demo."""
     features = {}
-
     try:
         parsed = urlparse(url)
-
     except Exception:
         parsed = urlparse("http://error.com")
-
+ 
     domain = parsed.netloc
     path = parsed.path
     query = parsed.query
-
+ 
     features["url_length"] = len(url)
     features["domain_length"] = len(domain)
     features["path_length"] = len(path)
@@ -136,313 +53,158 @@ def extract_url_features(url):
     features["num_hyphens"] = domain.count("-")
     features["num_subdomains"] = domain.count(".")
     features["has_https"] = 1 if parsed.scheme == "https" else 0
-
-    features["has_ip"] = 1 if re.search(
-        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
-        domain
-    ) else 0
-
+    features["has_ip"] = 1 if re.search(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", domain) else 0
     features["has_at_symbol"] = 1 if "@" in url else 0
-
-    features["num_special_chars"] = sum(
-        1 for c in url if c in "!#$%^&*()=+[]{}|;:',<>?"
-    )
-
-    features["digits_in_domain"] = sum(
-        1 for c in domain if c.isdigit()
-    )
-
-    suspicious_tlds = [
-        ".xyz", ".tk", ".ml", ".ga", ".cf", ".gq",
-        ".top", ".club", ".online", ".site",
-        ".buzz", ".link", ".click"
-    ]
-
-    features["suspicious_tld"] = 1 if any(
-        domain.endswith(tld)
-        for tld in suspicious_tlds
-    ) else 0
-
+    features["num_special_chars"] = sum(1 for c in url if c in "!#$%^&*()=+[]{}|;:',<>?")
+    features["digits_in_domain"] = sum(1 for c in domain if c.isdigit())
+ 
+    suspicious_tlds = [".xyz", ".tk", ".ml", ".ga", ".cf", ".gq", ".top",
+                       ".club", ".online", ".site", ".buzz", ".link", ".click"]
+    features["suspicious_tld"] = 1 if any(domain.endswith(tld) for tld in suspicious_tlds) else 0
+ 
     url_lower = url.lower()
-
     features["has_login"] = 1 if "login" in url_lower else 0
     features["has_verify"] = 1 if "verify" in url_lower else 0
     features["has_secure"] = 1 if "secure" in url_lower else 0
     features["has_account"] = 1 if "account" in url_lower else 0
     features["has_update"] = 1 if "update" in url_lower else 0
     features["has_query"] = 1 if query else 0
-
+ 
     return features
-
+ 
+ 
 # =========================================================
 # LOAD MODEL
 # =========================================================
-
 @st.cache_resource
 def load_model():
-
-    results_dir = os.path.join(
-        os.path.dirname(__file__),
-        "results"
-    )
-
+    """Load the trained model, scaler, and feature names."""
+    results_dir = os.path.join(os.path.dirname(__file__), "results")
     with open(os.path.join(results_dir, "best_model.pkl"), "rb") as f:
         model = pickle.load(f)
-
     with open(os.path.join(results_dir, "scaler.pkl"), "rb") as f:
         scaler = pickle.load(f)
-
     with open(os.path.join(results_dir, "feature_names.json")) as f:
         feature_names = json.load(f)
-
     return model, scaler, feature_names
-
+ 
+ 
 @st.cache_resource
 def load_metrics():
-
-    results_dir = os.path.join(
-        os.path.dirname(__file__),
-        "results"
-    )
-
+    """Load model comparison metrics."""
+    results_dir = os.path.join(os.path.dirname(__file__), "results")
     with open(os.path.join(results_dir, "metrics.json")) as f:
         return json.load(f)
-
-# =========================================================
-# SIDEBAR
-# =========================================================
-
-with st.sidebar:
-
-    st.markdown("# 🛡️ SecureMind AI")
-
-    st.markdown("---")
-
-    st.success("🟢 Threat Detection Engine Active")
-
-    st.markdown("## ⚡ Features")
-
-    st.write("✔ AI-based phishing detection")
-    st.write("✔ Real-time URL analysis")
-    st.write("✔ Threat confidence scoring")
-    st.write("✔ Feature extraction engine")
-    st.write("✔ XGBoost classification")
-
-    st.markdown("---")
-
-    st.markdown("## 📊 System Metrics")
-
-    st.metric("Accuracy", "98.6%")
-    st.metric("Dataset Size", "10,000")
-    st.metric("Best Model", "XGBoost")
-
-    st.markdown("---")
-
-    st.markdown("### 🎓 ECE 569A")
-    st.write("University of Victoria")
-
+ 
+ 
 # =========================================================
 # MAIN APP
 # =========================================================
-
 def main():
-
-    # =====================================================
-    # HERO SECTION
-    # =====================================================
-
-    st.markdown("""
-    <h1 class="main-title">🛡️ SecureMind AI</h1>
-    <p class="subtitle">
-    Advanced AI-Powered Phishing Detection Platform
-    </p>
-    """, unsafe_allow_html=True)
-
-    # =====================================================
-    # METRICS
-    # =====================================================
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric("🎯 Accuracy", "98.6%")
-
-    with col2:
-        st.metric("🧠 AI Models", "4")
-
-    with col3:
-        st.metric("🔍 URLs Analyzed", "10K+")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # =====================================================
-    # LOAD MODEL
-    # =====================================================
-
+    # --- Header ---
+    st.title("🔒 Phishing URL Detector")
+    st.markdown("*ECE 569A — AI Term Project | University of Victoria*")
+    st.markdown("Enter any URL below and our ML model will predict if it's **phishing** or **safe**.")
+    st.divider()
+ 
+    # --- Load model ---
     try:
         model, scaler, feature_names = load_model()
-
     except FileNotFoundError:
-        st.error("❌ Model files not found!")
+        st.error("Model files not found! Run `step2_train_models_kaggle.py` first.")
         return
-
-    # =====================================================
-    # INPUT SECTION
-    # =====================================================
-
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
-
-    st.markdown("## 🔗 Analyze URL")
-
+ 
+    # --- URL Input ---
     url = st.text_input(
-        "",
-        placeholder="https://secure-login-paypal.xyz"
+        "🔗 Enter a URL to check:",
+        placeholder="e.g., http://secure-paypal-login.xyz/verify",
     )
-
-    st.markdown("### ⚡ Quick Test URLs")
-
+ 
+    # Example buttons
+    st.markdown("**Try these examples:**")
     col1, col2, col3 = st.columns(3)
-
     with col1:
-        if st.button("✅ Google"):
-            url = "https://www.google.com"
-
+        if st.button("✅ google.com", use_container_width=True):
+            url = "https://www.google.com/search?q=weather"
     with col2:
-        if st.button("⚠️ Phishing"):
-            url = "http://secure-paypal-login.xyz/verify"
-
+        if st.button("⚠️ Phishing URL", use_container_width=True):
+            url = "http://secure-paypal-login.xyz/verify?token=456789"
     with col3:
-        if st.button("🚨 IP Attack"):
+        if st.button("⚠️ IP-based URL", use_container_width=True):
             url = "http://192.168.1.100/chase/login"
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # =====================================================
-    # PREDICTION
-    # =====================================================
-
+ 
+    # --- Prediction ---
     if url:
-
         if not url.startswith("http"):
             url = "http://" + url
-
+ 
+        # Extract features
         features = extract_url_features(url)
-
         feature_df = pd.DataFrame([features])
-
-        # Align missing features
-        for feature in feature_names:
-            if feature not in feature_df.columns:
-                feature_df[feature] = 0
-
+ 
+        # Align features with model's expected columns
+        # If model was trained on Kaggle (48 features), fill missing ones with 0
+        for feat in feature_names:
+            if feat not in feature_df.columns:
+                feature_df[feat] = 0
+ 
         feature_values = feature_df[feature_names]
-
+ 
+        # Scale and predict
         scaled = scaler.transform(feature_values)
-
         prediction = model.predict(scaled)[0]
-
         probabilities = model.predict_proba(scaled)[0]
-
+ 
+        # Determine result
         if prediction == 1:
             phishing_prob = probabilities[1]
             label = "PHISHING"
             confidence = phishing_prob
-
         else:
             phishing_prob = probabilities[1]
             label = "SAFE"
             confidence = 1 - phishing_prob
-
-        # =================================================
-        # RESULT CARD
-        # =================================================
-
-        st.markdown('<div class="glass">', unsafe_allow_html=True)
-
-        st.markdown("## 🧠 Detection Result")
-
+ 
+        st.divider()
+ 
+        # --- Display Result ---
         if label == "PHISHING":
-
-            st.error(
-                f"⚠️ PHISHING DETECTED — Confidence: {confidence*100:.1f}%"
-            )
-
+            st.error(f"⚠️ **PHISHING DETECTED** — Confidence: {confidence*100:.1f}%")
             st.write(f"Threat probability: {confidence*100:.1f}%")
-            st.progress(confidence)
-            
-
+            st.progress(int(confidence * 100))
         else:
-
-            st.success(
-                f"✅ URL appears SAFE — Confidence: {confidence*100:.1f}%"
-            )
-
+            st.success(f"✅ **URL appears SAFE** — Confidence: {confidence*100:.1f}%")
             st.write(f"Safety confidence: {confidence*100:.1f}%")
-            st.progress(confidence)
-            
-
-        # =================================================
-        # FEATURE DETAILS
-        # =================================================
-
-        with st.expander("🔍 Why did the AI make this prediction?"):
-
+            st.progress(int(confidence * 100))
+ 
+        # --- Feature Breakdown ---
+        with st.expander("🔍 Feature analysis — why this prediction?"):
             col_a, col_b = st.columns(2)
-
             with col_a:
-
-                st.markdown("### 📌 URL Characteristics")
-
-                st.markdown(f"- URL Length: **{features['url_length']}**")
-                st.markdown(f"- Domain Length: **{features['domain_length']}**")
-                st.markdown(f"- Number of Dots: **{features['num_dots']}**")
-                st.markdown(f"- Hyphens: **{features['num_hyphens']}**")
+                st.markdown("**URL characteristics:**")
+                st.markdown(f"- URL length: **{features['url_length']}** chars")
+                st.markdown(f"- Domain length: **{features['domain_length']}** chars")
+                st.markdown(f"- Number of dots: **{features['num_dots']}**")
+                st.markdown(f"- Hyphens in domain: **{features['num_hyphens']}**")
                 st.markdown(f"- Subdomains: **{features['num_subdomains']}**")
-
             with col_b:
-
-                st.markdown("### 🛡️ Security Indicators")
-
-                st.markdown(
-                    f"- HTTPS: **{'Yes ✅' if features['has_https'] else 'No ❌'}**"
-                )
-
-                st.markdown(
-                    f"- IP Address Used: **{'Yes ⚠️' if features['has_ip'] else 'No'}**"
-                )
-
-                st.markdown(
-                    f"- Suspicious TLD: **{'Yes ⚠️' if features['suspicious_tld'] else 'No'}**"
-                )
-
-                st.markdown(
-                    f"- Contains 'login': **{'Yes' if features['has_login'] else 'No'}**"
-                )
-
-                st.markdown(
-                    f"- Contains 'secure': **{'Yes' if features['has_secure'] else 'No'}**"
-                )
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # =====================================================
-    # MODEL PERFORMANCE
-    # =====================================================
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
-
-    st.markdown("## 📊 Model Performance Dashboard")
-
+                st.markdown("**Security indicators:**")
+                st.markdown(f"- Uses HTTPS: **{'Yes ✅' if features['has_https'] else 'No ❌'}**")
+                st.markdown(f"- Has IP address: **{'Yes ⚠️' if features['has_ip'] else 'No'}**")
+                st.markdown(f"- Suspicious TLD: **{'Yes ⚠️' if features['suspicious_tld'] else 'No'}**")
+                st.markdown(f"- Contains 'login': **{'Yes' if features['has_login'] else 'No'}**")
+                st.markdown(f"- Contains 'secure': **{'Yes' if features['has_secure'] else 'No'}**")
+ 
+    # --- Model Performance Section ---
+    st.divider()
+    st.subheader("📊 Model performance")
+ 
     try:
-
         metrics = load_metrics()
-
+        
+        # Create comparison table
         rows = []
-
         for name, data in metrics.items():
-
             rows.append({
                 "Model": name,
                 "Accuracy": f"{data['accuracy']*100:.1f}%",
@@ -450,81 +212,37 @@ def main():
                 "Recall": f"{data['recall']*100:.1f}%",
                 "F1-Score": f"{data['f1_score']:.4f}",
             })
-
-        st.dataframe(
-            pd.DataFrame(rows),
-            use_container_width=True,
-            hide_index=True
-        )
-
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
     except Exception:
-        st.info("Run training scripts to generate metrics.")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # =====================================================
-    # VISUALIZATIONS
-    # =====================================================
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown('<div class="glass">', unsafe_allow_html=True)
-
-    st.markdown("## 📈 AI Visualization Dashboard")
-
-    results_dir = os.path.join(
-        os.path.dirname(__file__),
-        "results"
-    )
-
+        st.info("Run step2 and step3 to generate model metrics.")
+ 
+    # --- Charts ---
+    results_dir = os.path.join(os.path.dirname(__file__), "results")
+ 
     chart_files = {
-        "📊 Model Comparison": "model_comparison.png",
-        "📈 ROC Curves": "roc_curves.png",
-        "🧩 Confusion Matrices": "confusion_matrices.png",
-        "⭐ Feature Importance": "feature_importance.png",
+        "Model comparison": "model_comparison.png",
+        "ROC curves": "roc_curves.png",
+        "Confusion matrices": "confusion_matrices.png",
+        "Feature importance": "feature_importance.png",
     }
-
+ 
     tabs = st.tabs(list(chart_files.keys()))
-
     for tab, (title, filename) in zip(tabs, chart_files.items()):
-
         with tab:
-
             img_path = os.path.join(results_dir, filename)
-
             if os.path.exists(img_path):
                 st.image(img_path, use_container_width=True)
-
             else:
-                st.info(f"{filename} not found.")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # =====================================================
-    # FOOTER
-    # =====================================================
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.markdown("""
-    <div style='text-align:center; color:gray; padding:30px;'>
-
-    <h4>🛡️ SecureMind AI</h4>
-
-    AI-Powered Phishing Detection System <br><br>
-
-    Developed for ECE 569A — Artificial Intelligence <br>
-    University of Victoria — Summer 2026 <br><br>
-
-    Built using:
-    Streamlit • XGBoost • Scikit-learn • Python
-
-    </div>
-    """, unsafe_allow_html=True)
-
-# =========================================================
-# RUN APP
-# =========================================================
-
+                st.info(f"Run step3_visualize.py to generate {filename}")
+ 
+    # --- Footer ---
+    st.divider()
+    st.markdown(
+        "*Built for ECE 569A Artificial Intelligence — University of Victoria, Summer 2026*  \n"
+        "*Dataset: Tan, Choon Lin (2018), Phishing Dataset for Machine Learning, Mendeley Data*"
+    )
+ 
+ 
 if __name__ == "__main__":
     main()
+ 
