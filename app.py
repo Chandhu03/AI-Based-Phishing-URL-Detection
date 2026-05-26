@@ -322,21 +322,21 @@ for feature in feature_names:
         feature_df[feature] = 0
 
 feature_values = feature_df[feature_names]
-        scaled = scaler.transform(feature_values)
+scaled = scaler.transform(feature_values)
 
-        prediction = model.predict(scaled)[0]
+prediction = model.predict(scaled)[0]
 
-        probabilities = model.predict_proba(scaled)[0]
+probabilities = model.predict_proba(scaled)[0]
 
-        if prediction == 1:
-            phishing_prob = probabilities[1]
-            label = "PHISHING"
-            confidence = phishing_prob
+if prediction == 1:
+    phishing_prob = probabilities[1]
+    label = "PHISHING"
+    confidence = phishing_prob
 
-        else:
-            phishing_prob = probabilities[1]
-            label = "SAFE"
-            confidence = 1 - phishing_prob
+else:
+    phishing_prob = probabilities[1]
+    label = "SAFE"
+    confidence = 1 - phishing_prob
 
         # =================================================
         # RESULT CARD
