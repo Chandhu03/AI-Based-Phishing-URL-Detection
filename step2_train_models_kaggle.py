@@ -4,11 +4,6 @@ STEP 2 (KAGGLE VERSION): Train ML Models on Real Phishing Dataset
 This version uses the REAL Kaggle dataset:
 "Phishing Dataset for Machine Learning" by Tan, Choon Lin (2018)
 
-THE DATASET:
-    - 10,000 websites (5,000 phishing + 5,000 legitimate)
-    - 48 features already extracted (URL structure, page content, etc.)
-    - CLASS_LABEL: 1 = legitimate, 0 = phishing
-
 WHAT THIS FILE DOES:
     1. Loads the Kaggle CSV (features already extracted!)
     2. Splits: 80% training, 20% testing
@@ -40,10 +35,9 @@ def main():
     print("=" * 60)
     print("STEP 2: TRAINING ON REAL KAGGLE PHISHING DATASET")
     print("=" * 60)
-
-    # =========================================================
+   
     # PART 1: Load the Kaggle dataset
-    # =========================================================
+
     data_path = os.path.join(os.path.dirname(__file__), "dataset", "Phishing_Legitimate_full.csv")
     print(f"\nLoading dataset from {data_path}...")
     df = pd.read_csv(data_path)
@@ -59,10 +53,9 @@ def main():
     y = df["CLASS_LABEL"]
 
     feature_names = list(X.columns)
-
-    # =========================================================
+   
     # PART 2: Split into training and testing
-    # =========================================================
+   
     print("\nSplitting data: 80% training, 20% testing...")
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
@@ -70,17 +63,15 @@ def main():
     print(f"  Training set: {len(X_train)} samples")
     print(f"  Testing set:  {len(X_test)} samples")
 
-    # =========================================================
     # PART 3: Scale features
-    # =========================================================
+  
     print("\nScaling features...")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # =========================================================
     # PART 4: Define the 4 models
-    # =========================================================
+    
     models = {
         "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
         "Random Forest": RandomForestClassifier(n_estimators=200, max_depth=15, random_state=42),
@@ -91,9 +82,8 @@ def main():
         ),
     }
 
-    # =========================================================
     # PART 5: Train and evaluate each model
-    # =========================================================
+   
     results = {}
     roc_data = {}
 
@@ -141,9 +131,8 @@ def main():
             "auc": round(roc_auc, 4),
         }
 
-    # =========================================================
     # PART 6: Cross-validation
-    # =========================================================
+
     print(f"\n{'=' * 60}")
     print("CROSS-VALIDATION (5-fold)")
     print("=" * 60)
@@ -154,9 +143,8 @@ def main():
         results[name]["cv_std"] = round(scores.std(), 4)
         print(f"  {name:25s}: {scores.mean():.4f} ± {scores.std():.4f}")
 
-    # =========================================================
     # PART 7: Feature importance
-    # =========================================================
+ 
     print(f"\n{'=' * 60}")
     print("TOP 15 MOST IMPORTANT FEATURES (Random Forest)")
     print("=" * 60)
@@ -171,9 +159,8 @@ def main():
         bar = "█" * int(imp * 100)
         print(f"  {feat_name:40s}: {imp:.4f} {bar}")
 
-    # =========================================================
     # PART 8: Save everything
-    # =========================================================
+
     results_dir = os.path.join(os.path.dirname(__file__), "results")
     os.makedirs(results_dir, exist_ok=True)
 
