@@ -1,19 +1,7 @@
 """
 STEP 3: Generate Visualizations
-=================================
-This creates all the graphs and charts for your report and presentation.
 
-WHAT GRAPHS DO WE MAKE?
-    1. Model Comparison Bar Chart   - Which model is best?
-    2. Confusion Matrices           - Where did each model make mistakes?
-    3. ROC Curves                   - How good is each model at ranking?
-    4. Feature Importance Bar Chart  - Which URL features matter most?
-
-WHY ARE VISUALIZATIONS IMPORTANT?
-    The professor's rubric says:
-    "Use graphs, charts, and/or tables to effectively display results" (25%)
-    
-    Good graphs = good grade. These are publication-quality charts.
+This creates all the graphs and charts for the report and presentation.
 """
 
 import json
@@ -21,10 +9,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use("Agg")  # No GUI needed
+matplotlib.use("Agg") 
 import seaborn as sns
 
-# Set a clean style
+
 plt.style.use("seaborn-v0_8-whitegrid")
 sns.set_palette("husl")
 
