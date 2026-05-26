@@ -156,7 +156,7 @@ def main():
         probabilities = model.predict_proba(scaled)[0]
  
         # Determine result
-        if prediction == 1:
+        if prediction == 0:
             phishing_prob = probabilities[1]
             label = "PHISHING"
             confidence = phishing_prob
