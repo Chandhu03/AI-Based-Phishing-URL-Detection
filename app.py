@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 # PAGE CONFIG
 # =========================================================
 st.set_page_config(
-    page_title="SecureMind AI — Phishing Detector",
+    page_title="SecureMind Labs — Phishing Detector",
     page_icon="🛡️",
     layout="wide",
 )
