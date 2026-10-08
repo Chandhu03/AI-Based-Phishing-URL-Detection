@@ -1,7 +1,7 @@
 """
-PHISHING URL DETECTOR — SecureMind AI
+PHISHING URL DETECTOR — SecureMind Labs
 =======================================
-ECE 569A AI Term Project | University of Victoria
+
  
 HOW TO RUN LOCALLY:
     streamlit run app.py
