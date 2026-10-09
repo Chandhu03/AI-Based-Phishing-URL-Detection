@@ -1,27 +1,31 @@
 """
-PHISHING URL DETECTOR — SecureMind Labs
+PHISHING URL DETECTOR - SecureMind Labs
 =======================================
 
- 
+This app examines the characters of a URL string only. It never visits,
+fetches or resolves the site. Live predictions come from a demonstration
+model trained on synthetic URLs; it has not been evaluated on real-world
+data. The tables at the bottom are an offline research benchmark and are
+not used for live checks.
+
 HOW TO RUN LOCALLY:
     streamlit run app.py
- 
-HOW TO DEPLOY (FREE):
-    1. Push to GitHub
-    2. Go to https://share.streamlit.io
-    3. Connect your GitHub repo
-    4. Deploy — done!
 """
- 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import pickle
+
+import html
 import json
 import os
-import re
-from urllib.parse import urlparse
- 
+
+import pandas as pd
+import streamlit as st
+
+from securemind.demo_model import predict, train_demo_model
+from securemind.url_validation import (
+    MAX_URL_LENGTH,
+    URLValidationError,
+    validate_url,
+)
+
 # =========================================================
 # PAGE CONFIG
 # =========================================================
@@ -265,208 +269,129 @@ st.markdown("""
  
  
 # =========================================================
-# FEATURE EXTRACTION (same logic as step1)
-# =========================================================
-def extract_url_features(url):
-    """Extract features from a raw URL string for the demo."""
-    features = {}
-    try:
-        parsed = urlparse(url)
-    except Exception:
-        parsed = urlparse("http://error.com")
- 
-    domain = parsed.netloc
-    path = parsed.path
-    query = parsed.query
- 
-    features["url_length"] = len(url)
-    features["domain_length"] = len(domain)
-    features["path_length"] = len(path)
-    features["num_dots"] = url.count(".")
-    features["num_hyphens"] = domain.count("-")
-    features["num_subdomains"] = domain.count(".")
-    features["has_https"] = 1 if parsed.scheme == "https" else 0
-    features["has_ip"] = 1 if re.search(
-        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", domain) else 0
-    features["has_at_symbol"] = 1 if "@" in url else 0
-    features["num_special_chars"] = sum(
-        1 for c in url if c in "!#$%^&*()=+[]{}|;:',<>?")
-    features["digits_in_domain"] = sum(1 for c in domain if c.isdigit())
- 
-    suspicious_tlds = [
-        ".xyz", ".tk", ".ml", ".ga", ".cf", ".gq", ".top",
-        ".club", ".online", ".site", ".buzz", ".link", ".click"]
-    features["suspicious_tld"] = 1 if any(
-        domain.endswith(tld) for tld in suspicious_tlds) else 0
- 
-    url_lower = url.lower()
-    features["has_login"] = 1 if "login" in url_lower else 0
-    features["has_verify"] = 1 if "verify" in url_lower else 0
-    features["has_secure"] = 1 if "secure" in url_lower else 0
-    features["has_account"] = 1 if "account" in url_lower else 0
-    features["has_update"] = 1 if "update" in url_lower else 0
-    features["has_query"] = 1 if query else 0
- 
-    return features
- 
- 
-# =========================================================
-# LOAD KAGGLE MODEL METRICS (for display only)
+# LOAD OFFLINE BENCHMARK METRICS (for display only)
 # =========================================================
 @st.cache_resource
 def load_metrics():
-    """Load model comparison metrics from Kaggle training."""
+    """Load model comparison metrics from the offline benchmark."""
     results_dir = os.path.join(os.path.dirname(__file__), "results")
-    with open(os.path.join(results_dir, "metrics.json")) as f:
+    with open(os.path.join(results_dir, "metrics.json"), encoding="utf-8") as f:
         return json.load(f)
- 
- 
+
+
 # =========================================================
-# BUILD URL DEMO MODEL (for live predictions)
+# LIVE DEMO MODEL (trained on synthetic URLs)
 # =========================================================
 @st.cache_resource
-def build_demo_model():
-    """
-    Train a Random Forest on URL-based features for live predictions.
-    This is the same approach as step4_demo.py.
-    The Kaggle model can't be used for live URL input because it was
-    trained on 48 webpage-level features we can't extract from a URL alone.
-    """
-    import random
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.preprocessing import StandardScaler
- 
-    random.seed(42)
- 
-    # --- Building blocks for training URLs ---
-    legit_domains = [
-        "google.com", "facebook.com", "amazon.com", "microsoft.com",
-        "apple.com", "netflix.com", "github.com", "stackoverflow.com",
-        "wikipedia.org", "linkedin.com", "twitter.com", "instagram.com",
-        "youtube.com", "reddit.com", "ebay.com", "walmart.com",
-        "bbc.co.uk", "cnn.com", "nytimes.com", "medium.com",
-        "shopify.com", "dropbox.com", "zoom.us", "slack.com",
-        "adobe.com", "spotify.com", "paypal.com", "chase.com",
-        "bankofamerica.com", "wellsfargo.com", "td.com", "rbc.ca",
-        "uvic.ca", "ubc.ca", "mit.edu", "stanford.edu", "harvard.edu",
-        "gov.ca", "canada.ca", "irs.gov", "nhs.uk", "who.int",
-        "arxiv.org", "nature.com", "sciencedirect.com", "ieee.org",
-        "docker.com", "kubernetes.io", "python.org", "nodejs.org",
-        "npmjs.com", "pypi.org", "rust-lang.org", "golang.org",
-        "stripe.com", "twilio.com", "cloudflare.com", "fastly.com",
-        "heroku.com", "vercel.com", "netlify.com", "railway.app",
-        "notion.so", "figma.com", "canva.com", "trello.com",
-        "airbnb.com", "booking.com", "expedia.com", "tripadvisor.com",
-        "uber.com", "lyft.com", "doordash.com", "grubhub.com",
-        "zillow.com", "realtor.com", "craigslist.org", "etsy.com",
-        "target.com", "bestbuy.com", "costco.com", "homedepot.com",
+def load_demo_model():
+    return train_demo_model()
+
+
+LIMITATIONS = (
+    "This demo examines the characters of the URL string only.",
+    "The website is not visited, fetched, or resolved.",
+    "No live reputation or blocklist lookup is performed.",
+    "False positives and false negatives are possible.",
+    "A result is not a security guarantee.",
+    "The live model is a demonstration trained on synthetic URLs and has not "
+    "been evaluated on real-world data.",
+)
+
+
+def section_head(title):
+    """Section heading; title is always a fixed literal."""
+    st.markdown(
+        f'<div class="section-head"><span class="dot"></span>'
+        f'{html.escape(str(title))}</div>',
+        unsafe_allow_html=True)
+
+
+def render_result(n, pred):
+    """Render the result for a validated URL. Only fixed text or numbers."""
+    pct = pred.vote_share * 100
+    features = pred.features
+
+    section_head("Detection Result")
+
+    if pred.is_phishing:
+        st.markdown(
+            '<div class="result-danger">'
+            '<h3>⚠️ Phishing indicators detected in the URL text</h3>'
+            '</div>',
+            unsafe_allow_html=True)
+    else:
+        st.markdown(
+            '<div class="result-safe">'
+            '<h3>No phishing indicators detected in the URL text</h3>'
+            '<p>The website itself was not checked.</p>'
+            '</div>',
+            unsafe_allow_html=True)
+
+    st.markdown(
+        f"Model vote share: {pct:.0f}% of trees agreed. "
+        "This is not a calibrated probability.")
+
+    # ---- Limitations ----
+    st.markdown("**Limitations**")
+    st.markdown("\n".join(f"- {s}" for s in LIMITATIONS))
+
+    # ---- Host analysed (user-derived: only via st.code) ----
+    st.markdown("**Host analysed**")
+    st.code(n.hostname_display, language=None)
+    if n.hostname_display != n.hostname:
+        st.code(n.hostname, language=None)
+        st.caption("ASCII (punycode) form")
+    for note in n.notes:
+        st.caption(note)
+
+    # ---- Feature Breakdown ----
+    section_head("Feature Analysis")
+
+    if not n.scheme_explicit:
+        https_item = ("HTTPS", "Not given", "warn")
+    elif features["has_https"]:
+        https_item = ("HTTPS", "Yes", "good")
+    else:
+        https_item = ("HTTPS", "No", "bad")
+
+    feat_items = [
+        ("URL Length", str(features["url_length"]),
+         "warn" if features["url_length"] > 75 else ""),
+        ("Domain Length", str(features["domain_length"]),
+         "warn" if features["domain_length"] > 30 else ""),
+        ("Dots in URL", str(features["num_dots"]),
+         "warn" if features["num_dots"] > 3 else ""),
+        ("Domain Hyphens", str(features["num_hyphens"]),
+         "warn" if features["num_hyphens"] > 1 else ""),
+        https_item,
+        ("IP Address", "Yes" if features["has_ip"] else "No",
+         "bad" if features["has_ip"] else "good"),
+        ("Suspicious TLD", "Yes" if features["suspicious_tld"] else "No",
+         "bad" if features["suspicious_tld"] else "good"),
+        ("Login details in URL", "Yes" if n.has_userinfo else "No",
+         "bad" if n.has_userinfo else "good"),
+        ("Non-standard port", "Yes" if n.nonstandard_port else "No",
+         "warn" if n.nonstandard_port else ""),
+        ("Has 'login'", "Yes" if features["has_login"] else "No",
+         "warn" if features["has_login"] else ""),
+        ("Has 'secure'", "Yes" if features["has_secure"] else "No",
+         "warn" if features["has_secure"] else ""),
+        ("Has 'verify'", "Yes" if features["has_verify"] else "No",
+         "warn" if features["has_verify"] else ""),
     ]
-    legit_paths = [
-        "/", "/about", "/contact", "/products", "/services",
-        "/help", "/support", "/login", "/account", "/settings",
-        "/news", "/blog", "/docs", "/api", "/pricing",
-        "/careers", "/team", "/faq", "/terms", "/privacy",
-        "/search", "/explore", "/trending", "/popular", "/new",
-        "/dp/B08N5WRWNW", "/python/cpython", "/user/repos",
-        "/watch?v=dQw4w9WgXcQ", "/r/programming", "/p/12345",
-    ]
-    legit_subdomains = [
-        "www", "blog", "docs", "help", "api", "mail",
-        "app", "dev", "staging", "cdn", "static", "m",
-        "store", "shop", "support", "status", "my",
-    ]
-    phishing_keywords = [
-        "secure", "verify", "update", "confirm", "login",
-        "account", "banking", "signin", "authenticate", "validate",
-        "password", "credential", "alert", "suspended", "locked",
-    ]
-    phishing_brands = [
-        "paypal", "apple", "google", "microsoft", "amazon",
-        "netflix", "chase", "wellsfargo", "bankofamerica", "facebook",
-    ]
-    phishing_tlds = [
-        ".xyz", ".tk", ".ml", ".ga", ".cf", ".gq",
-        ".top", ".club", ".online", ".site", ".info",
-        ".ru", ".cn", ".buzz", ".link", ".click",
-    ]
-    phishing_paths = [
-        "/verify-account", "/secure-login", "/update-info",
-        "/confirm-identity", "/reset-password", "/unlock-account",
-        "/validate-user", "/security-check", "/auth/login",
-        "/account/verify", "/signin/confirm", "/secure/update",
-    ]
- 
-    def gen_legit():
-        # Mix of protocols — legit sites mostly HTTPS
-        proto = random.choice(["https://"] * 8 + ["https://www."] * 4 + ["http://"] * 1)
-        dom = random.choice(legit_domains)
-        path = random.choice(legit_paths)
- 
-        # Sometimes add a subdomain
-        if random.random() < 0.15:
-            dom = random.choice(legit_subdomains) + "." + dom
- 
-        # Various query patterns
-        q = ""
-        r = random.random()
-        if r < 0.15:
-            q = f"?id={random.randint(100, 9999)}"
-        elif r < 0.25:
-            q = f"?q={random.choice(['weather', 'news', 'python', 'recipe', 'how+to'])}"
-        elif r < 0.30:
-            q = f"?page={random.randint(1, 20)}&sort=popular"
- 
-        # Sometimes generate bare domain (common user input)
-        if random.random() < 0.15:
-            return proto + dom
- 
-        return proto + dom + path + q
- 
-    def gen_phish():
-        proto = random.choice(["http://", "https://", "http://www."])
-        pattern = random.choice(["kw", "brand", "ip", "sub"])
-        if pattern == "kw":
-            parts = random.sample(phishing_keywords, random.randint(2, 3))
-            brand = random.choice(phishing_brands)
-            sep = random.choice(["-", ".", ""])
-            dom = sep.join(parts + [brand]) + random.choice(phishing_tlds)
-        elif pattern == "brand":
-            brand = random.choice(phishing_brands)
-            kw = random.choice(phishing_keywords)
-            ext = random.choice([".com", ".org", ".net"])
-            dom = f"{brand}-{kw}{ext}.{kw}-{random.choice(phishing_keywords)}{random.choice(phishing_tlds)}"
-        elif pattern == "ip":
-            ip = f"{random.randint(1,255)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,255)}"
-            brand = random.choice(phishing_brands)
-            return f"http://{ip}/{brand}/login"
-        else:
-            brand = random.choice(phishing_brands)
-            subs = random.sample(phishing_keywords, random.randint(2, 4))
-            dom = f"{brand}.com.{'.'.join(subs)}{random.choice(phishing_tlds)}"
-        path = random.choice(phishing_paths)
-        q = f"?token={random.randint(100000,999999)}&redirect=true" if random.random() < 0.4 else ""
-        return proto + dom + path + q
- 
-    # Generate training data — larger set for better accuracy
-    train_data = []
-    for _ in range(5000):
-        train_data.append((gen_legit(), 0))   # 0 = safe
-    for _ in range(5000):
-        train_data.append((gen_phish(), 1))    # 1 = phishing
-    random.shuffle(train_data)
- 
-    X = pd.DataFrame([extract_url_features(url) for url, _ in train_data])
-    y = [label for _, label in train_data]
- 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
- 
-    model = RandomForestClassifier(n_estimators=200, max_depth=None, random_state=42)
-    model.fit(X_scaled, y)
- 
-    return model, scaler
- 
- 
+
+    grid_html = '<div class="feat-grid">'
+    for fname, fval, fcls in feat_items:
+        grid_html += (
+            f'<div class="feat-item">'
+            f'<span class="fname">{html.escape(str(fname))}</span>'
+            f'<span class="fval {html.escape(str(fcls))}">'
+            f'{html.escape(str(fval))}</span>'
+            f'</div>')
+    grid_html += '</div>'
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+
 # =========================================================
 # MAIN APP
 # =========================================================
@@ -478,195 +403,131 @@ def main():
         'AI-Powered Phishing Detection System &nbsp;·&nbsp; '
         'ECE 569A &nbsp;·&nbsp; University of Victoria'
         '</div>', unsafe_allow_html=True)
- 
-    # ---- Status row ----
-    st.markdown(
-        '<span class="status-badge badge-online">● Engine Active</span>',
-        unsafe_allow_html=True)
- 
+
     # ---- Load demo model for live predictions ----
-    demo_model, demo_scaler = build_demo_model()
- 
-    # ---- Load metrics for display ----
+    demo_model, demo_scaler = load_demo_model()
+
+    # ---- Status row (only after the model loaded) ----
+    st.markdown(
+        '<span class="status-badge badge-online">● Demo model loaded</span>',
+        unsafe_allow_html=True)
+
+    # ---- Load benchmark metrics for display ----
     try:
         metrics = load_metrics()
         best_name = max(metrics, key=lambda k: metrics[k]["f1_score"])
         best_acc = metrics[best_name]["accuracy"]
     except Exception:
         metrics = None
-        best_name = "XGBoost"
-        best_acc = 0.986
- 
+        best_name = None
+        best_acc = None
+
     # =========================================================
-    # LAYOUT — two columns: left = controls, right = results
+    # LAYOUT - two columns: left = controls, right = results
     # =========================================================
     left_col, right_col = st.columns([1, 1.4], gap="large")
- 
+
     with left_col:
         # ---- URL Input ----
-        st.markdown(
-            '<div class="section-head"><span class="dot"></span>Analyze URL</div>',
-            unsafe_allow_html=True)
- 
+        section_head("Analyze URL")
+
         url = st.text_input(
             "Enter a URL to scan",
-            placeholder="https://secure-login-paypal.xyz",
+            key="url_input",
+            # One character above the limit: Streamlit truncates text to
+            # max_chars server-side, so allowing limit + 1 lets validate_url
+            # reject over-long input explicitly instead of silently
+            # analysing a truncated URL. The framework still bounds the
+            # work to MAX_URL_LENGTH + 1 characters.
+            max_chars=MAX_URL_LENGTH + 1,
+            placeholder="https://example.com/login",
             label_visibility="collapsed",
         )
- 
+
         # ---- Quick test buttons ----
-        st.markdown(
-            '<div class="section-head"><span class="dot"></span>Quick Test URLs</div>',
-            unsafe_allow_html=True)
- 
+        section_head("Quick Test URLs")
+
         qcol1, qcol2, qcol3 = st.columns(3)
         with qcol1:
-            if st.button("✅ Google", width='stretch'):
+            if st.button("Example: google.com", width='stretch'):
                 url = "https://www.google.com/search?q=weather"
         with qcol2:
-            if st.button("🔴 Phishing", width='stretch'):
+            if st.button("Example: phishing-style URL", width='stretch'):
                 url = "http://secure-paypal-login.xyz/verify?token=456789"
         with qcol3:
-            if st.button("🔴 IP Attack", width='stretch'):
+            if st.button("Example: raw IP host", width='stretch'):
                 url = "http://192.168.1.100/chase/login"
- 
-        # ---- System Metrics Panel ----
-        st.markdown(
-            '<div class="section-head"><span class="dot"></span>System Metrics</div>',
-            unsafe_allow_html=True)
- 
-        st.markdown(f"""
-        <div class="metric-row">
-            <div class="metric-card">
-                <div class="label">Accuracy</div>
-                <div class="value accent">{best_acc*100:.1f}%</div>
+
+        # ---- Offline benchmark panel ----
+        section_head("Offline research benchmark")
+
+        if metrics is not None:
+            acc_txt = html.escape(f"{best_acc * 100:.1f}")
+            name_txt = html.escape(str(best_name))
+            st.markdown(f"""
+            <div class="metric-row">
+                <div class="metric-card">
+                    <div class="label">Benchmark accuracy</div>
+                    <div class="value accent">{acc_txt}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Benchmark dataset</div>
+                    <div class="value">10K</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Benchmark model</div>
+                    <div class="value" style="font-size:1rem;">{name_txt}</div>
+                </div>
             </div>
-            <div class="metric-card">
-                <div class="label">Dataset</div>
-                <div class="value">10K</div>
-            </div>
-            <div class="metric-card">
-                <div class="label">Best Model</div>
-                <div class="value" style="font-size:1rem;">{best_name}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
- 
+            """, unsafe_allow_html=True)
+            st.caption(
+                "Benchmark: model trained on 48 webpage features from Tan "
+                "(2018). It is not used for live URL checks.")
+        else:
+            st.info("Benchmark metrics are unavailable.")
+
     with right_col:
         # ---- Prediction Results ----
         if url:
-            if not url.startswith("http"):
-                url = "https://" + url
- 
-            # Extract features
-            features = extract_url_features(url)
-            feature_df = pd.DataFrame([features])
- 
-            # Scale and predict using the URL demo model
-            scaled = demo_scaler.transform(feature_df)
-            prediction = demo_model.predict(scaled)[0]
-            probabilities = demo_model.predict_proba(scaled)[0]
- 
-            # Demo model: 0 = safe, 1 = phishing
-            if prediction == 1:
-                label = "PHISHING"
-                confidence = probabilities[1]
-            else:
-                label = "SAFE"
-                confidence = probabilities[0]
- 
-            # Clamp confidence for progress bar
-            conf_int = max(0, min(100, int(confidence * 100)))
- 
-            st.markdown(
-                '<div class="section-head"><span class="dot"></span>Detection Result</div>',
-                unsafe_allow_html=True)
- 
-            if label == "PHISHING":
-                st.markdown(f"""
-                <div class="result-danger">
-                    <h3>⚠️ PHISHING DETECTED</h3>
-                    <p>Threat confidence: {confidence*100:.1f}%</p>
-                    <div class="conf-bar-wrap">
-                        <div class="conf-bar-fill-danger" style="width:{conf_int}%"></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class="result-safe">
-                    <h3>✅ URL Appears Safe</h3>
-                    <p>Safety confidence: {confidence*100:.1f}%</p>
-                    <div class="conf-bar-wrap">
-                        <div class="conf-bar-fill-safe" style="width:{conf_int}%"></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
- 
-            # ---- Feature Breakdown ----
-            st.markdown(
-                '<div class="section-head"><span class="dot"></span>Feature Analysis</div>',
-                unsafe_allow_html=True)
- 
-            def val_class(val, good_val=None, bad_val=None):
-                if bad_val is not None and val == bad_val:
-                    return "bad"
-                if good_val is not None and val == good_val:
-                    return "good"
-                return ""
- 
-            feat_items = [
-                ("URL Length", str(features["url_length"]),
-                 "warn" if features["url_length"] > 75 else ""),
-                ("Domain Length", str(features["domain_length"]),
-                 "warn" if features["domain_length"] > 30 else ""),
-                ("Dots in URL", str(features["num_dots"]),
-                 "warn" if features["num_dots"] > 3 else ""),
-                ("Domain Hyphens", str(features["num_hyphens"]),
-                 "warn" if features["num_hyphens"] > 1 else ""),
-                ("HTTPS", "Yes" if features["has_https"] else "No",
-                 "good" if features["has_https"] else "bad"),
-                ("IP Address", "Yes" if features["has_ip"] else "No",
-                 "bad" if features["has_ip"] else "good"),
-                ("Suspicious TLD", "Yes" if features["suspicious_tld"] else "No",
-                 "bad" if features["suspicious_tld"] else "good"),
-                ("Has 'login'", "Yes" if features["has_login"] else "No",
-                 "warn" if features["has_login"] else ""),
-                ("Has 'secure'", "Yes" if features["has_secure"] else "No",
-                 "warn" if features["has_secure"] else ""),
-                ("Has 'verify'", "Yes" if features["has_verify"] else "No",
-                 "warn" if features["has_verify"] else ""),
-            ]
- 
-            grid_html = '<div class="feat-grid">'
-            for fname, fval, fcls in feat_items:
-                grid_html += (
-                    f'<div class="feat-item">'
-                    f'<span class="fname">{fname}</span>'
-                    f'<span class="fval {fcls}">{fval}</span>'
-                    f'</div>')
-            grid_html += '</div>'
-            st.markdown(grid_html, unsafe_allow_html=True)
- 
+            n = None
+            try:
+                n = validate_url(url)
+            except URLValidationError as e:
+                st.error(e.user_message)
+            except Exception:
+                # Never surface (or let Streamlit log) an unexpected error
+                # whose message could contain the submitted URL.
+                st.error(
+                    "The URL could not be analysed because of an "
+                    "internal error. No details are shown.")
+
+            if n is not None:
+                pred = None
+                try:
+                    pred = predict(n, demo_model, demo_scaler)
+                except Exception:
+                    st.error(
+                        "The URL could not be analysed because of an "
+                        "internal error. No details are shown.")
+                if pred is not None:
+                    render_result(n, pred)
         else:
-            st.markdown(
-                '<div class="section-head"><span class="dot"></span>'
-                'Detection Result</div>',
-                unsafe_allow_html=True)
+            section_head("Detection Result")
             st.markdown(
                 '<div class="glass-card" style="text-align:center;color:#3a4556;'
                 'padding:3rem 1rem;">Enter a URL or click a quick test to start'
                 '</div>', unsafe_allow_html=True)
- 
+
     # =========================================================
-    # MODEL PERFORMANCE SECTION
+    # OFFLINE BENCHMARK SECTION
     # =========================================================
     st.markdown("---")
-    st.markdown(
-        '<div class="section-head"><span class="dot"></span>'
-        'Model Performance Comparison</div>',
-        unsafe_allow_html=True)
- 
+    section_head("Offline research benchmark (not the live model)")
+    st.caption(
+        "These scores come from models trained on webpage-content features "
+        "(Tan, 2018). They are not used for live URL checks and say nothing "
+        "about the live demo model's accuracy.")
+
     if metrics:
         perf_rows = []
         for name, data in metrics.items():
@@ -683,8 +544,8 @@ def main():
             width='stretch',
             hide_index=True)
     else:
-        st.info("Run step2 and step3 to generate model metrics.")
- 
+        st.info("Benchmark metrics are unavailable.")
+
     # ---- Charts ----
     results_dir = os.path.join(os.path.dirname(__file__), "results")
     chart_files = {
@@ -693,7 +554,7 @@ def main():
         "Confusion Matrices": "confusion_matrices.png",
         "Feature Importance": "feature_importance.png",
     }
- 
+
     tabs = st.tabs(list(chart_files.keys()))
     for tab, (title, filename) in zip(tabs, chart_files.items()):
         with tab:
@@ -702,7 +563,7 @@ def main():
                 st.image(img_path, width='stretch')
             else:
                 st.info(f"Run step3_visualize.py to generate {filename}")
- 
+
     # ---- Footer ----
     st.markdown(
         '<div class="footer-text">'
@@ -712,8 +573,7 @@ def main():
         'Dataset: Tan, Choon Lin (2018), '
         'Phishing Dataset for Machine Learning, Mendeley Data'
         '</div>', unsafe_allow_html=True)
- 
- 
+
+
 if __name__ == "__main__":
     main()
- 

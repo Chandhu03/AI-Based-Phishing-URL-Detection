@@ -1,27 +1,29 @@
-blinker==1.9.0
-click==8.4.1
-colorama==0.4.6
-contourpy==1.3.3
-cycler==0.12.1
-Flask==3.1.3
-fonttools==4.63.0
-itsdangerous==2.2.0
-Jinja2==3.1.6
-joblib==1.5.3
-kiwisolver==1.5.0
-MarkupSafe==3.0.3
-matplotlib==3.10.9
+# Direct runtime dependencies for the Streamlit app (app.py) and the
+# research pipeline scripts (step0-step4). Exact versions and SHA-256
+# hashes of every package (direct and transitive) are recorded in
+# requirements-lock.txt.
+#
+# Install for a reproducible, hash-checked environment:
+#   python -m pip install --require-hashes --only-binary=:all: --no-deps -r requirements-lock.txt
+# After editing this file, regenerate the lock files (see README).
+
+# Web application
+streamlit==1.65.0
+
+# URL handling (IDNA 2008 / UTS #46 host normalisation)
+idna==3.20
+
+# Data and ML
 numpy==2.4.6
-packaging==26.2
 pandas==3.0.3
-pillow==12.2.0
-pyparsing==3.3.2
-python-dateutil==2.9.0.post0
 scikit-learn==1.8.0
 scipy==1.17.1
-seaborn==0.13.2
-six==1.17.0
-threadpoolctl==3.6.0
-tzdata==2026.2
-Werkzeug==3.1.8
 xgboost==3.2.0
+
+# Charts (step3_visualize.py)
+matplotlib==3.10.9
+seaborn==0.13.2
+
+# pillow is pulled in by streamlit and matplotlib; pinned here to keep the
+# patched release (12.2.0 has advisories fixed in 12.3.0).
+pillow==12.3.0
