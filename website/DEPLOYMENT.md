@@ -1,14 +1,17 @@
 # Deploying the website (Cloudflare Pages)
 
-Status: the Pages project **`securemind-labs`** exists, connected to GitHub.
-Previews are built from `launch/*` branches. No production deployment and no
-custom domain yet. Every step below is an owner action.
+Status: the Pages project exists, connected to GitHub. Its `pages.dev`
+subdomain is **`securemind-labs-preview.pages.dev`**. Previews are built from
+`launch/*` branches; the integration branch's preview is
+`https://launch-integrate-site.securemind-labs-preview.pages.dev`. There is no
+production deployment and no custom domain yet. Every step below is an owner
+action.
 
 ## 1. Pages project settings
 
 | Setting | Value |
 |---|---|
-| Project name | `securemind-labs`. This is permanent: it becomes `securemind-labs.pages.dev` and the target for the custom domain |
+| `pages.dev` subdomain | `securemind-labs-preview.pages.dev`. This is permanent for the project, and it is the target for the custom domain at launch. To launch under a different subdomain, create a new project before connecting the domain |
 | Source | GitHub repository `Chandhu03/AI-Based-Phishing-URL-Detection` |
 | Production branch | `main` |
 | Preview branches | Custom branches, include `launch/*` (previews are public by default) |
@@ -31,10 +34,16 @@ custom domain yet. Every step below is an owner action.
 - **Starting a preview:** push a commit to the `launch/*` branch. Branches
   pushed before the project was connected are not guaranteed to build.
 
-- **Why the build runs the tests:** the build fails if any of the 103 unit
+- **Why the build runs the tests:** the build fails if any of the 104 unit
   tests fail, so a broken dissector is never published.
 - **What gets published:** `public/_headers` is copied to `dist/_headers`,
   where Pages applies it to every response, including `*.pages.dev` previews.
+- **Unknown paths:** `dist/404.html` makes Pages answer them with a real 404.
+  Without it, Pages serves the homepage with a 200 status for every path.
+- **Headers Pages adds itself:**
+  - `Access-Control-Allow-Origin: *` on static files. The site has no
+    cookies, credentials or private data, so this exposes nothing.
+  - `x-robots-tag: noindex` on preview deployments only.
 
 ## 2. Preview checklist (on `https://<branch>.<project>.pages.dev`)
 
@@ -43,6 +52,7 @@ Run these from `website/` on your machine:
 1. **Headers:** `npm run check:headers -- https://<preview-host>`.
    - It reads `public/_headers` and requests `/`, `/research/` and a hashed
      asset.
+   - It also requests a path that does not exist, which must return 404.
    - It must print `PASS`.
    - It fails if any header is missing or differs.
 2. **Pages return 200:** `/`, `/research/`, `/research` (should redirect to

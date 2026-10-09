@@ -27,11 +27,12 @@ test("every _headers line is within Cloudflare's 2,000-character limit", async (
   assert.ok(rules.length <= 100);
 });
 
-async function serve(dropHeader) {
+async function serve(dropHeader, { soft404 = false } = {}) {
+  const known = new Set(["/", "/research/", "/assets/main-abc.js"]);
   const server = createServer((req, res) => {
     const headers = { "content-type": "text/html", ...expectedFor(rules, req.url) };
     if (dropHeader) delete headers[dropHeader];
-    res.writeHead(200, headers);
+    res.writeHead(known.has(req.url) || soft404 ? 200 : 404, headers);
     res.end('<script type="module" src="/assets/main-abc.js"></script>');
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
@@ -42,7 +43,7 @@ test("check() passes when the host serves every configured header", async () => 
   const { server, base } = await serve(null);
   try {
     const { paths, failures } = await check(base, rules);
-    assert.deepEqual(paths, ["/", "/research/", "/assets/main-abc.js"]);
+    assert.deepEqual(paths, ["/", "/research/", "/assets/main-abc.js", "/__securemind-404-check__/ (expects 404)"]);
     assert.deepEqual(failures, []);
   } finally { server.close(); }
 });
@@ -52,5 +53,13 @@ test("check() reports a missing header", async () => {
   try {
     const { failures } = await check(base, rules);
     assert.ok(failures.some((f) => f.includes("missing content-security-policy")));
+  } finally { server.close(); }
+});
+
+test("check() reports a soft 404 (unknown path served with 200)", async () => {
+  const { server, base } = await serve(null, { soft404: true });
+  try {
+    const { failures } = await check(base, rules);
+    assert.ok(failures.some((f) => f.includes("expected HTTP 404, got 200")));
   } finally { server.close(); }
 });

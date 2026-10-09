@@ -398,6 +398,10 @@ tbody tr:last-child > * { border-bottom: 0; }
 .results td:not(:first-of-type) { white-space: nowrap; }
 .cell-note { display: block; font-weight: 400; color: var(--muted); }
 
+/* ---------------------------------------------------------------- 404 */
+.not-found { display: grid; gap: var(--space-5); align-content: start; min-height: 55vh; padding-block: var(--space-8); }
+.not-found h1 { font-size: var(--step-4); max-width: 16ch; }
+
 /* ---------------------------------------------------------------- footer */
 .site-footer { border-top: 1px solid var(--rule); padding-block: var(--space-7); background: var(--paper); }
 .footer-inner { display: grid; gap: var(--space-5); }

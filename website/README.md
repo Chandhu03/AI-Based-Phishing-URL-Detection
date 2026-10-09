@@ -47,7 +47,7 @@ Requires Node.js 22 or newer. From `website/`:
 
 ```powershell
 npm ci                 # exact versions from package-lock.json
-npm test               # 103 unit tests: dissector policy, PSL vectors, Punycode, header checker
+npm test               # 104 unit tests: dissector policy, PSL vectors, Punycode, header checker
 npm run dev            # http://localhost:5173
 npm run build          # -> dist/ (two HTML pages, hashed assets)
 npm run preview        # serves dist/ at http://localhost:4173

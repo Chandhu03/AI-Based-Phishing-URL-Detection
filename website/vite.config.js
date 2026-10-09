@@ -8,6 +8,9 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, "index.html"),
         research: resolve(import.meta.dirname, "research/index.html"),
+        // Cloudflare Pages serves dist/404.html with a 404 status for unknown
+        // paths. Without it, Pages falls back to index.html with a 200 status.
+        notFound: resolve(import.meta.dirname, "404.html"),
       },
     },
   },

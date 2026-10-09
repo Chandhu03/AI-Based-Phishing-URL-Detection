@@ -52,6 +52,13 @@ export async function check(base, rules, fetchImpl = fetch) {
       else if (got !== value) failures.push(`${path}: ${name} differs\n    expected: ${value}\n    got:      ${got}`);
     }
   }
+  // An unknown path must be a real 404 (not the homepage with 200) and must
+  // still carry the security headers.
+  const missingPath = "/__securemind-404-check__/";
+  const notFound = await fetchImpl(new URL(missingPath, base), { redirect: "manual" });
+  if (notFound.status !== 404) failures.push(`${missingPath}: expected HTTP 404, got ${notFound.status}`);
+  if (notFound.headers.get("content-security-policy") === null) failures.push(`${missingPath}: missing content-security-policy`);
+  paths.push(`${missingPath} (expects 404)`);
   return { paths, failures };
 }
 
