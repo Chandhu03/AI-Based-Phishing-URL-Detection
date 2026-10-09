@@ -1,21 +1,35 @@
 # Deploying the website (Cloudflare Pages)
 
-Status: **prepared, not performed.** Every step below is an owner action. Do
-nothing here until the reconciled repository is on GitHub.
+Status: the Pages project **`securemind-labs`** exists, connected to GitHub.
+Previews are built from `launch/*` branches. No production deployment and no
+custom domain yet. Every step below is an owner action.
 
 ## 1. Pages project settings
 
 | Setting | Value |
 |---|---|
+| Project name | `securemind-labs`. This is permanent: it becomes `securemind-labs.pages.dev` and the target for the custom domain |
 | Source | GitHub repository `Chandhu03/AI-Based-Phishing-URL-Detection` |
 | Production branch | `main` |
+| Preview branches | Custom branches, include `launch/*` (previews are public by default) |
 | Root directory | `website` |
 | Framework preset | None |
 | Build command | `npm ci && npm test && npm run build` |
 | Build output directory | `dist` |
-| Node.js version | 22, from `website/.node-version`. The Pages v3 image defaults to 22.16.0 |
-| Environment variables | None. The site has no secrets |
+| Node.js version | 22: `NODE_VERSION=22` (Production and Preview) plus `website/.node-version` |
+| Other environment variables | None. The site has no secrets |
 | Functions | None. `_headers` does not apply to Pages Functions, and the site has none |
+
+- **Why `NODE_VERSION` is set too:** Cloudflare documents `.node-version`
+  for the project root but does not say whether that means the configured
+  root directory. The environment variable removes the doubt.
+- **The first production build fails, and that is expected.** Creating the
+  project builds `main` immediately. Until the integration branch is merged,
+  `main` has no `website/` folder, so the build fails with
+  `Cannot find cwd: /opt/buildhome/repo/website`. Nothing is published. Do
+  not change the production branch or merge just to make it pass.
+- **Starting a preview:** push a commit to the `launch/*` branch. Branches
+  pushed before the project was connected are not guaranteed to build.
 
 - **Why the build runs the tests:** the build fails if any of the 103 unit
   tests fail, so a broken dissector is never published.
