@@ -1,0 +1,20 @@
+# Security headers for Cloudflare Pages (which applies this file to static
+# responses). They are NOT applied by `vite dev` or `vite preview`; verify
+# them on a preview deployment with: curl -sI https://<preview-host>/
+#
+# CSP notes: only same-origin scripts and styles; no inline script or style
+# attributes; no network APIs (connect-src 'none'); the form never submits
+# (form-action 'none'). The URL dissector's rule list is a same-origin
+# module, covered by script-src 'self'.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
