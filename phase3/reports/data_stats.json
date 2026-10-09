@@ -1,0 +1,104 @@
+{
+  "split_salt": "securemind-phase3-v1",
+  "split_fractions": [
+    0.7,
+    0.15,
+    0.15
+  ],
+  "sources": {
+    "phiusiil": {
+      "rows_in": 235795,
+      "class_in": {
+        "0": 134850,
+        "1": 100945
+      },
+      "rejected_by_validator": 9,
+      "rejected_reasons": {
+        "invalid_idn|is_phishing=1": 1,
+        "too_long|is_phishing=1": 8
+      },
+      "exact_duplicates_removed": 437,
+      "conflicting_urls": 0,
+      "conflicting_rows_removed": 0,
+      "groups_with_both_labels": 106,
+      "rows_out": 235349,
+      "class_out": {
+        "0": 134850,
+        "1": 100499
+      },
+      "unique_groups": 197297,
+      "unique_hosts": 220072,
+      "splits": {
+        "train": {
+          "rows": 163229,
+          "phishing": 68807,
+          "domains": 138294
+        },
+        "val": {
+          "rows": 36304,
+          "phishing": 16036,
+          "domains": 29481
+        },
+        "test": {
+          "rows": 35816,
+          "phishing": 15656,
+          "domains": 29522
+        }
+      },
+      "leakage": {
+        "train_val_shared_groups": 0,
+        "train_test_shared_groups": 0,
+        "val_test_shared_groups": 0
+      },
+      "sha256": "0a639fd03aea6308c5b1c10c92aa23c2ce1505447a9137271865cd0badc9a59a"
+    },
+    "hannousse": {
+      "rows_in": 11430,
+      "class_in": {
+        "0": 5715,
+        "1": 5715
+      },
+      "rejected_by_validator": 4,
+      "rejected_reasons": {
+        "control_chars|is_phishing=1": 3,
+        "whitespace|is_phishing=1": 1
+      },
+      "exact_duplicates_removed": 2,
+      "conflicting_urls": 0,
+      "conflicting_rows_removed": 0,
+      "groups_with_both_labels": 17,
+      "rows_out": 11424,
+      "class_out": {
+        "0": 5715,
+        "1": 5709
+      },
+      "unique_groups": 7261,
+      "unique_hosts": 8240,
+      "splits": {
+        "train": {
+          "rows": 7522,
+          "phishing": 3656,
+          "domains": 5127
+        },
+        "val": {
+          "rows": 1933,
+          "phishing": 936,
+          "domains": 1062
+        },
+        "test": {
+          "rows": 1969,
+          "phishing": 1117,
+          "domains": 1072
+        }
+      },
+      "leakage": {
+        "train_val_shared_groups": 0,
+        "train_test_shared_groups": 0,
+        "val_test_shared_groups": 0
+      },
+      "sha256": "21093e2902e5441c86a6daf95e86e7c332046e477fdf109a579d7bd81e586d6c"
+    }
+  },
+  "cross_dataset_shared_domains": 814,
+  "cross_dataset_shared_urls": 44
+}

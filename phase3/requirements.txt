@@ -1,0 +1,5 @@
+# Phase 3 needs no packages beyond the project's existing hash-locked set
+# (scikit-learn, numpy, pandas, pyarrow, idna, all in requirements-lock.txt).
+# Install the project environment as described in the top-level README.
+#
+# Intentionally empty: no additional research dependencies were introduced.
