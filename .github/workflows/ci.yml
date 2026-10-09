@@ -4,7 +4,9 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    # launch/** branches are pushed only by maintainers (write access), so
+    # running CI on them never executes untrusted code.
+    branches: [main, "launch/**"]
   workflow_dispatch:
 
 # Least privilege: every job only reads the repository. No secrets are used.
