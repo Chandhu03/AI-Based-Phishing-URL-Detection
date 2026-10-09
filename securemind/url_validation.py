@@ -83,6 +83,19 @@ def _parse_ipv4_label(label: str) -> int:
     return int(label, 10)
 
 
+def _ipv6_text(addr: ipaddress.IPv6Address) -> str:
+    """Hex-only compressed form, as browsers serialise IPv6 hosts.
+
+    Newer CPython patch releases print IPv4-mapped addresses in mixed
+    notation ("::ffff:127.0.0.1"); format those explicitly so the result
+    does not depend on the Python version.
+    """
+    if addr.ipv4_mapped is not None:
+        low = int(addr) & 0xFFFFFFFF
+        return f"::ffff:{low >> 16:x}:{low & 0xFFFF:x}"
+    return addr.compressed
+
+
 def _ends_in_number(labels: list[str]) -> bool:
     last = labels[-1]
     return bool(_DIGITS_RE.match(last) or _HEX_RE.match(last))
@@ -174,7 +187,7 @@ def validate_url(raw: object) -> NormalizedURL:
             addr6 = ipaddress.IPv6Address(host)
         except ValueError:
             raise _err("invalid_ip") from None
-        host = display = addr6.compressed
+        host = display = _ipv6_text(addr6)
         is_ip, ip_version = True, 6
     else:
         # 9a. Map non-ASCII hosts to ASCII (UTS #46) BEFORE the IPv4 check,

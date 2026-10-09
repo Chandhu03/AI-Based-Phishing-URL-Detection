@@ -58,6 +58,30 @@ def test_host_matches_browser_interpretation(raw, host):
 
 
 @pytest.mark.parametrize(
+    "raw, host",
+    [
+        ("http://[::ffff:127.0.0.1]/", "::ffff:7f00:1"),
+        ("http://[::FFFF:C0A8:101]:8080/", "::ffff:c0a8:101"),
+        ("http://[2001:db8::1]/", "2001:db8::1"),
+    ],
+)
+def test_ipv6_text_is_independent_of_python_version(monkeypatch, raw, host):
+    """Newer CPython patch releases render IPv4-mapped addresses as
+    '::ffff:127.0.0.1'. Simulate that and require the browser's hex form."""
+    import ipaddress
+
+    original = ipaddress.IPv6Address.compressed
+
+    def mixed_notation(self):
+        if self.ipv4_mapped is not None:
+            return f"::ffff:{self.ipv4_mapped}"
+        return original.fget(self)
+
+    monkeypatch.setattr(ipaddress.IPv6Address, "compressed", property(mixed_notation))
+    assert validate_url(raw).hostname == host
+
+
+@pytest.mark.parametrize(
     "raw, code",
     [
         ("http://[fe80::1%25eth0]/", "invalid_host"),
