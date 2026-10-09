@@ -45,33 +45,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Secret scan (gitleaks, every commit)
+      - name: Secret scan (gitleaks, every commit including merges)
+        env:
+          # Empty on push events. On pull_request events the checkout is a
+          # synthetic merge commit; the script checks both ends of the PR
+          # are inside the scanned history.
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict -
           tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
-          # gitleaks exits 0 when git itself fails or no commits are visible,
-          # so prove the scan covered the whole history before trusting it.
-          if [ "$(git rev-parse --is-shallow-repository)" != "false" ]; then
-            echo "::error::Shallow clone: secret scan would miss history."; exit 1
-          fi
-          expected="$(git rev-list --all --count)"
-          log="$RUNNER_TEMP/gitleaks.log"
-          status=0
-          "$RUNNER_TEMP/gitleaks" git --no-banner --no-color --redact --verbose . > "$log" 2>&1 || status=$?
-          cat "$log"
-          if [ "$status" -ne 0 ]; then
-            echo "::error::gitleaks exited with status $status (1 means leaks were found)."; exit "$status"
-          fi
-          if grep -q ' ERR ' "$log"; then
-            echo "::error::gitleaks logged an error; the scan is not trustworthy."; exit 1
-          fi
-          scanned="$(sed -n 's/.* INF \([0-9][0-9]*\) commits scanned\..*/\1/p' "$log")"
-          if [ "$scanned" != "$expected" ]; then
-            echo "::error::gitleaks scanned '${scanned}' commits; the repository has ${expected}."; exit 1
-          fi
-          echo "gitleaks scanned all ${scanned} commits and found no leaks."
+          bash .github/scripts/secret-scan.sh "$RUNNER_TEMP/gitleaks" "$RUNNER_TEMP/gitleaks.log"
 
       - name: Lint workflow files (actionlint, with shellcheck when available)
         run: |

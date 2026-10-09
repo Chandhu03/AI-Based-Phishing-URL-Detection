@@ -1,0 +1,4 @@
+# Shell scripts must keep LF line endings on every platform: bash fails on
+# CRLF ("$'\r': command not found"), and Windows checkouts convert to CRLF
+# by default (core.autocrlf=true on GitHub's Windows runners).
+*.sh text eol=lf
