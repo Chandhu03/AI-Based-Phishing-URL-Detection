@@ -153,7 +153,31 @@ jobs:
         run: python -m compileall -q -f -x '[\\/]\.(venv|git)[\\/]' .
 
       - name: Run test suite
-        run: python -m pytest -q -p no:cacheprovider
+        run: python -m pytest -q -p no:cacheprovider --junitxml="$RUNNER_TEMP/pytest-junit.xml"
+
+      # Turn each failed test into a GitHub annotation so failures are visible
+      # on the run summary and pull requests without opening the raw log.
+      - name: Annotate failed tests
+        if: failure()
+        run: |
+          python - "$RUNNER_TEMP/pytest-junit.xml" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          def esc(text):
+              return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+          path = Path(sys.argv[1])
+          if not path.exists():
+              print("::error title=pytest::No JUnit report was written; pytest failed before collecting tests.")
+              sys.exit(0)
+          for case in ET.parse(path).getroot().iter("testcase"):
+              for bad in list(case.findall("failure")) + list(case.findall("error")):
+                  name = f"{case.get('classname')}.{case.get('name')}"
+                  detail = (bad.get("message") or "") + "\n" + (bad.text or "")
+                  print(f"::error title={esc(name)[:200]}::{esc(detail.strip()[-1800:])}")
+          PY
 
       - name: Audit the installed environment (runtime + tools)
         run: python -m pip_audit --progress-spinner off
