@@ -1,0 +1,9 @@
+# Development and verification tools (direct dependencies only). Install the
+# hash-pinned set into the project virtual environment with:
+#   python -m pip install --require-hashes --only-binary=:all: --no-deps -r requirements-dev-lock.txt
+# After editing this file, regenerate the lock files (see README).
+pytest==9.1.1
+pip-audit==2.10.1
+bandit==1.9.4
+# Lock-file generator; CI uses it to check that the locks are up to date.
+uv==0.12.24

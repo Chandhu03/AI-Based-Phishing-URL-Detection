@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SecureMind Labs — Read a link the way your browser does</title>
+    <meta name="description" content="SecureMind Labs researches phishing-URL detection in the open. Dissect any link in your browser to see where it really points, and read an honest evaluation of our models." />
+    <link rel="canonical" href="https://securemindlabs.com/" />
+    <meta name="theme-color" content="#f6f5f0" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SecureMind Labs" />
+    <meta property="og:title" content="SecureMind Labs — Read a link the way your browser does" />
+    <meta property="og:description" content="Dissect a URL in your browser and see where it really points. Open, carefully evaluated phishing-URL research." />
+    <meta property="og:url" content="https://securemindlabs.com/" />
+    <meta property="og:image" content="https://securemindlabs.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SecureMind Labs: a URL split into its parts, showing the real registrable domain." />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="/" aria-label="SecureMind Labs home">
+          <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><rect x="1" y="1" width="26" height="26" rx="6" class="bm-frame"/><path d="M7 10h14M7 14h6M15 14h6M7 18h10" class="bm-lines"/><rect x="13" y="12" width="2" height="4" class="bm-cut"/></svg>
+          <span class="brand-name">SecureMind <span>Labs</span></span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+          <span class="nav-toggle-bars" aria-hidden="true"></span><span class="nav-toggle-label">Menu</span>
+        </button>
+        <nav class="site-nav" id="site-nav" aria-label="Primary">
+          <ul>
+            <li><a href="#dissect">Dissect a URL</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="/research/">Research</a></li>
+            <li><a href="#about">About</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <!-- Hero -->
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Phishing-URL research, done in the open</p>
+          <h1 id="hero-title">Read a link the way your browser does.</h1>
+          <p class="lede">Phishing links hide their real destination in plain sight. SecureMind Labs builds and openly evaluates URL-based phishing detection—starting with a dissector that shows what a link actually points to, right in your browser.</p>
+          <div class="actions">
+            <a class="btn btn-primary" href="#dissect">Dissect a URL</a>
+            <a class="btn btn-ghost" href="/research/">Read the evaluation <span aria-hidden="true">→</span></a>
+          </div>
+          <ul class="assurances" aria-label="How the dissector works">
+            <li>Runs entirely in your browser</li>
+            <li>The link is never opened or sent</li>
+            <li>Facts about the URL, not verdicts</li>
+          </ul>
+        </div>
+
+        <figure class="specimen" aria-labelledby="specimen-caption">
+          <div class="specimen-head">
+            <span class="specimen-tag">Example</span>
+            <span class="specimen-note">Fictional link, dissected</span>
+          </div>
+          <p class="anatomy" aria-hidden="true"><span class="seg seg-scheme">https://</span><span class="seg seg-subdomain">secure-login.northwind-bank.com.</span><span class="seg seg-domain">account-review</span><span class="seg seg-suffix">.co</span><span class="seg seg-path">/session</span><span class="seg seg-query">?next=%2Fpay</span></p>
+          <dl class="specimen-key">
+            <div><dt><span class="key-swatch key-subdomain"></span>Subdomain</dt><dd>Any text its owner chooses—including a bank’s name.</dd></div>
+            <div><dt><span class="key-swatch key-domain"></span>Registrable domain</dt><dd><strong>account-review.co</strong> is who you would really be visiting.</dd></div>
+          </dl>
+          <figcaption id="specimen-caption">“northwind-bank.com” appears in the link, but only as a subdomain of <strong>account-review.co</strong>. The dissector finds this using the Public Suffix List—the same list browsers use.</figcaption>
+        </figure>
+      </section>
+
+      <!-- Dissector -->
+      <section class="dissect band" id="dissect" aria-labelledby="dissect-title">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">URL dissector</p>
+            <h2 id="dissect-title">Paste a link. See where it really goes.</h2>
+            <p class="section-lede">The dissector parses the address with your browser’s own URL rules and lists what is factually true about it. It does not visit the site, look it up, or decide whether it is safe.</p>
+          </div>
+
+          <div class="dissector">
+            <form class="dissect-form" id="dissect-form" novalidate>
+              <label class="field-label" for="url-input">Link to dissect</label>
+              <div class="field-row">
+                <input id="url-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="2049" placeholder="https://example.com/sign-in" aria-describedby="url-help url-error" />
+                <button class="btn btn-primary" type="submit">Dissect</button>
+              </div>
+              <p class="field-help" id="url-help">Up to 2,048 characters. Processed only on this page; nothing is stored or sent.</p>
+              <p class="field-error" id="url-error" role="alert" hidden></p>
+              <div class="examples">
+                <span class="examples-label" id="examples-label">Try an example:</span>
+                <ul aria-labelledby="examples-label">
+                  <li><button type="button" class="chip" data-example="http://paypal.com.secure-account.tk/login">Brand in a subdomain</button></li>
+                  <li><button type="button" class="chip" data-example="http://3232235777/bank/login">Disguised IP address</button></li>
+                  <li><button type="button" class="chip" data-example="https://xn--pple-43d.com/id">Look-alike letters</button></li>
+                  <li><button type="button" class="chip" data-example="https://www.example.org/docs?page=2">Ordinary link</button></li>
+                </ul>
+              </div>
+            </form>
+
+            <div class="result" id="result" data-state="idle">
+              <p class="sr-status" id="result-status" role="status" aria-live="polite"></p>
+              <div class="result-idle" id="result-idle">
+                <p class="result-idle-title">Nothing dissected yet.</p>
+                <p>Results show the link split into its parts, the domain you would actually be visiting, and any structural tricks such as hidden login text, disguised IP addresses or look-alike characters.</p>
+              </div>
+              <noscript><p class="noscript">The dissector needs JavaScript. Everything else on this page works without it.</p></noscript>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section class="how wrap" id="how" aria-labelledby="how-title">
+        <div class="section-head">
+          <p class="kicker">How it works</p>
+          <h2 id="how-title">Three layers, kept deliberately separate.</h2>
+          <p class="section-lede">A single “safe/unsafe” badge hides what each step actually knows. We keep parsing, prediction and judgement apart, and label where each one runs and how mature it is.</p>
+        </div>
+        <ol class="layers">
+          <li class="layer">
+            <p class="layer-step">1</p>
+            <div>
+              <h3>Structure</h3>
+              <p>What the URL literally says: the scheme, the real registrable domain, ports, embedded credentials, encodings.</p>
+              <dl class="layer-facts">
+                <div><dt>Where</dt><dd>This page, in your browser</dd></div>
+                <div><dt>Status</dt><dd><span class="status status-live">Live</span></dd></div>
+                <div><dt>Cannot tell you</dt><dd>Who runs the site or what it does</dd></div>
+              </dl>
+            </div>
+          </li>
+          <li class="layer">
+            <p class="layer-step">2</p>
+            <div>
+              <h3>Model</h3>
+              <p>A machine-learning estimate of whether the URL text resembles known phishing links.</p>
+              <dl class="layer-facts">
+                <div><dt>Where</dt><dd>A separate research demo (Streamlit)</dd></div>
+                <div><dt>Status</dt><dd><span class="status status-research">Research</span></dd></div>
+                <div><dt>Cannot tell you</dt><dd>Anything reliable about brand-new campaigns</dd></div>
+              </dl>
+              <p class="layer-link"><a href="https://securemind-ai.streamlit.app/" rel="noopener noreferrer" target="_blank">Open the research demo<span class="visually-hidden"> (opens securemind-ai.streamlit.app in a new tab)</span> <span aria-hidden="true">↗</span></a></p>
+              <p class="layer-caveat">The demo runs our original prototype, trained on synthetic URLs. The 98.6% accuracy it displays comes from an offline benchmark on a different dataset, not from the model that analyses your link, and a “safe” result from it is not reliable. Treat it as a demonstration only.</p>
+            </div>
+          </li>
+          <li class="layer">
+            <p class="layer-step">3</p>
+            <div>
+              <h3>Judgement</h3>
+              <p>Context no URL contains: who sent it, whether you expected it, what the page asks you to do.</p>
+              <dl class="layer-facts">
+                <div><dt>Where</dt><dd>You</dd></div>
+                <div><dt>Status</dt><dd><span class="status status-human">Always needed</span></dd></div>
+                <div><dt>Cannot be replaced by</dt><dd>Layers 1 or 2</dd></div>
+              </dl>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Research teaser -->
+      <section class="research band band-ink" id="research" aria-labelledby="research-title">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">Research</p>
+            <h2 id="research-title">What we learned trying to break our own evaluation.</h2>
+            <p class="section-lede">We trained URL-only models on two public, CC BY 4.0 datasets, split by registrable domain so no site appears in both training and testing.</p>
+          </div>
+          <div class="findings">
+            <article class="finding">
+              <p class="finding-num">Finding 01</p>
+              <h3>One dataset gave the answer away.</h3>
+              <p>In PhiUSIIL, every legitimate URL is a bare <code>https://www.</code> homepage. A one-line rule with no machine learning scores <strong>F1&nbsp;0.996</strong> there—and <strong>0.754</strong> on a different dataset. So our main model reads only the hostname.</p>
+            </article>
+            <article class="finding finding-wide">
+              <p class="finding-num">Finding 02</p>
+              <h3>Strong on familiar data, much weaker on new data.</h3>
+              <p>Our hostname model ranks phishing above legitimate URLs clearly better than the current demo model on held-out domains (ROC-AUC 0.919 vs 0.848). On a dataset it never saw, the gap nearly closes (0.741 vs 0.717), and its false-positive rate rose from 0.9% to 6.2%.</p>
+              <figure class="chart">
+                <svg class="dotplot" viewBox="0 0 640 212" role="img" aria-labelledby="dotplot-title dotplot-desc" xmlns="http://www.w3.org/2000/svg">
+                  <title id="dotplot-title">ROC-AUC on two test sets, hostname candidate versus current demo model</title>
+                  <desc id="dotplot-desc">Dots show ROC-AUC; horizontal bars show 95% intervals from a domain-level bootstrap. The same values are listed in the table below the chart.</desc>
+                  <line class="grid" x1="214.0" x2="214.0" y1="20" y2="186"/>
+                  <text class="tick" x="214.0" y="204" text-anchor="middle">0.5</text>
+                  <line class="grid" x1="294.4" x2="294.4" y1="20" y2="186"/>
+                  <text class="tick" x="294.4" y="204" text-anchor="middle">0.6</text>
+                  <line class="grid" x1="374.8" x2="374.8" y1="20" y2="186"/>
+                  <text class="tick" x="374.8" y="204" text-anchor="middle">0.7</text>
+                  <line class="grid" x1="455.2" x2="455.2" y1="20" y2="186"/>
+                  <text class="tick" x="455.2" y="204" text-anchor="middle">0.8</text>
+                  <line class="grid" x1="535.6" x2="535.6" y1="20" y2="186"/>
+                  <text class="tick" x="535.6" y="204" text-anchor="middle">0.9</text>
+                  <line class="grid" x1="616.0" x2="616.0" y1="20" y2="186"/>
+                  <text class="tick" x="616.0" y="204" text-anchor="middle">1.0</text>
+                  <text class="row-label" x="0" y="52">PhiUSIIL · held-out domains</text>
+                  <line class="ci cand" x1="537.4" x2="563.9" y1="42" y2="42"/>
+                  <circle class="dot cand" cx="550.9" cy="42" r="6"/>
+                  <text class="val" x="571.9" y="46">0.919</text>
+                  <line class="ci ref" x1="462.3" x2="523.3" y1="68" y2="68"/>
+                  <rect class="dot ref" x="488.2" y="62.5" width="11" height="11"/>
+                  <text class="val" x="531.3" y="72">0.848</text>
+                  <text class="row-label" x="0" y="126">Hannousse · different dataset</text>
+                  <line class="ci cand" x1="383.9" x2="432.8" y1="116" y2="116"/>
+                  <circle class="dot cand" cx="407.9" cy="116" r="6"/>
+                  <text class="val" x="440.8" y="120">0.741</text>
+                  <line class="ci ref" x1="360.4" x2="416.0" y1="142" y2="142"/>
+                  <rect class="dot ref" x="382.7" y="136.5" width="11" height="11"/>
+                  <text class="val" x="424.0" y="146">0.717</text>
+                  <text class="axis" x="616" y="14" text-anchor="end">ROC-AUC (0.5 = chance)</text>
+                </svg>
+                <figcaption>
+                  <span class="legend"><span class="legend-dot legend-cand" aria-hidden="true"></span>Hostname candidate (experimental)</span>
+                  <span class="legend"><span class="legend-dot legend-ref" aria-hidden="true"></span>Current demo model</span>
+                  <span>Bars: 95% intervals, resampling whole domains.</span>
+                </figcaption>
+                <table class="mini-table">
+                  <caption class="visually-hidden">ROC-AUC with 95% intervals</caption>
+                  <thead><tr><th scope="col">Test set</th><th scope="col">Hostname candidate</th><th scope="col">Current demo model</th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row">PhiUSIIL, held-out domains</th><td>0.919 <span class="ci-text">(0.902–0.935)</span></td><td>0.848 <span class="ci-text">(0.809–0.885)</span></td></tr>
+                    <tr><th scope="row">Hannousse, different dataset</th><td>0.741 <span class="ci-text">(0.711–0.772)</span></td><td>0.717 <span class="ci-text">(0.682–0.751)</span></td></tr>
+                  </tbody>
+                </table>
+              </figure>
+            </article>
+          </div>
+          <p class="research-more"><a href="/research/">Read the full evaluation, limitations and method <span aria-hidden="true">→</span></a></p>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section class="about wrap" id="about" aria-labelledby="about-title">
+        <div class="section-head">
+          <p class="kicker">About</p>
+          <h2 id="about-title">An early-stage, independent research project.</h2>
+        </div>
+        <div class="about-body">
+          <p>SecureMind Labs grew out of a machine-learning course project (ECE 569A) at the University of Victoria. It is now an independent effort to build phishing-URL tools whose limits are as visible as their results: every number on this site comes from a reproducible evaluation, and every capability is labelled with where it runs and how mature it is.</p>
+          <p>We are not a commercial security service, and nothing here should be the only thing standing between you and a suspicious link.</p>
+          <dl class="contact">
+            <div><dt>Contact</dt><dd><a href="mailto:founder@securemindlabs.com">founder@securemindlabs.com</a></dd></div>
+            <div><dt>Source code</dt><dd><a href="https://github.com/Chandhu03/AI-Based-Phishing-URL-Detection" rel="noopener noreferrer" target="_blank">github.com/Chandhu03/AI-Based-Phishing-URL-Detection<span class="visually-hidden"> (opens in a new tab)</span></a></dd></div>
+          </dl>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <div class="footer-brand">
+          <p class="brand-name">SecureMind <span>Labs</span></p>
+          <p>Phishing-URL research, done in the open.</p>
+        </div>
+        <nav aria-label="Footer">
+          <ul>
+            <li><a href="#dissect">Dissect a URL</a></li>
+            <li><a href="/research/">Research</a></li>
+            <li><a href="https://securemind-ai.streamlit.app/" rel="noopener noreferrer" target="_blank">Research demo<span class="visually-hidden"> (opens in a new tab)</span> <span aria-hidden="true">↗</span></a></li>
+            <li><a href="https://github.com/Chandhu03/AI-Based-Phishing-URL-Detection" rel="noopener noreferrer" target="_blank">GitHub<span class="visually-hidden"> (opens in a new tab)</span> <span aria-hidden="true">↗</span></a></li>
+          </ul>
+        </nav>
+        <p class="footer-privacy">This site sets no cookies and runs no analytics. The dissector works entirely in your browser; links you enter are never sent to us or anyone else.</p>
+        <p class="footer-legal">© 2026 SecureMind Labs. Research prototype.</p>
+      </div>
+    </footer>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

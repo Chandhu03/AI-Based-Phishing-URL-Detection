@@ -1,0 +1,26 @@
+# Hardened Streamlit configuration for SecureMind AI.
+# Option names and values were checked against `streamlit config show`
+# for the pinned Streamlit version (see requirements.txt).
+
+[server]
+# The app only receives a short URL string. Cap WebSocket messages (MB) far
+# below the 200 MB default so oversized payloads are dropped before they
+# reach the script. The 2,048-character URL limit is enforced separately in
+# securemind/url_validation.py.
+maxMessageSize = 1
+# The app has no file uploader; keep the upload ceiling minimal.
+maxUploadSize = 1
+# Keep Streamlit's defaults explicit.
+enableXsrfProtection = true
+enableCORS = true
+enableStaticServing = false
+
+[client]
+# Show only generic error messages in the browser; details stay in the
+# server console.
+showErrorDetails = "none"
+# Hide developer options from visitors.
+toolbarMode = "viewer"
+
+[browser]
+gatherUsageStats = false

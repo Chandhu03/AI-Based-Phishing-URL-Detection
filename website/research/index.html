@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evaluation: URL-only phishing detection — SecureMind Labs</title>
+    <meta name="description" content="How SecureMind Labs evaluates URL-only phishing detection: domain-disjoint splits, a dataset shortcut we found, cross-dataset results and their limits." />
+    <link rel="canonical" href="https://securemindlabs.com/research/" />
+    <meta name="theme-color" content="#f6f5f0" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="SecureMind Labs" />
+    <meta property="og:title" content="Evaluation: URL-only phishing detection" />
+    <meta property="og:description" content="Domain-disjoint evaluation on two public datasets, a dataset shortcut, and why cross-dataset results matter." />
+    <meta property="og:url" content="https://securemindlabs.com/research/" />
+    <meta property="og:image" content="https://securemindlabs.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SecureMind Labs: a URL split into its parts, showing the real registrable domain." />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="/" aria-label="SecureMind Labs home">
+          <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><rect x="1" y="1" width="26" height="26" rx="6" class="bm-frame"/><path d="M7 10h14M7 14h6M15 14h6M7 18h10" class="bm-lines"/><rect x="13" y="12" width="2" height="4" class="bm-cut"/></svg>
+          <span class="brand-name">SecureMind <span>Labs</span></span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+          <span class="nav-toggle-bars" aria-hidden="true"></span><span class="nav-toggle-label">Menu</span>
+        </button>
+        <nav class="site-nav" id="site-nav" aria-label="Primary">
+          <ul>
+            <li><a href="/#dissect">Dissect a URL</a></li>
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/research/" aria-current="page">Research</a></li>
+            <li><a href="/#about">About</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1" class="article">
+      <article class="wrap prose-layout">
+        <header class="article-head">
+          <p class="kicker">Research · evaluated 9 October 2026</p>
+          <h1>Evaluating URL-only phishing detection, honestly.</h1>
+          <p class="lede">We trained models that look only at a URL’s text, tested them on websites they had never seen, and then tested them again on a different dataset. This page reports what held up and what did not.</p>
+          <aside class="callout" aria-label="Status of these results">
+            <p><strong>Research results, not product performance.</strong> None of the candidate models below is deployed. The public demo still runs our original prototype. Reports and code for this evaluation are prepared in the repository’s <code>phase3/</code> directory and will be published there before these results are promoted.</p>
+          </aside>
+        </header>
+
+        <nav class="toc" aria-label="On this page">
+          <p class="toc-title">On this page</p>
+          <ol>
+            <li><a href="#summary">Summary</a></li>
+            <li><a href="#data">Data</a></li>
+            <li><a href="#method">Method</a></li>
+            <li><a href="#shortcut">Finding: a dataset shortcut</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#limits">Limitations</a></li>
+            <li><a href="#next">What comes next</a></li>
+          </ol>
+        </nav>
+
+        <div class="prose">
+          <section id="summary" aria-labelledby="summary-title">
+            <h2 id="summary-title">Summary</h2>
+            <ul class="summary-list">
+              <li><strong>A shortcut, found and removed.</strong> In one dataset every legitimate URL was a bare homepage. A no-ML rule exploiting that scores F1 0.996 there. We excluded those signals from the main model.</li>
+              <li><strong>Better than the current demo on familiar data.</strong> On websites held out from the same dataset, the hostname model reaches ROC-AUC 0.919 against 0.848 for the model in today’s demo.</li>
+              <li><strong>Generalisation is the open problem.</strong> On a separate dataset the advantage shrinks to 0.741 against 0.717, with overlapping uncertainty, and a threshold tuned for 1% false positives produced 6.2%.</li>
+            </ul>
+          </section>
+
+          <section id="data" aria-labelledby="data-title">
+            <h2 id="data-title">Data</h2>
+            <p>Both datasets are published under CC BY 4.0, which permits this use with attribution. We use only each dataset’s URL text and label; supplied features derived from page content are ignored, because a URL-only detector cannot see them.</p>
+            <div class="table-scroll" role="region" aria-labelledby="data-caption" tabindex="0">
+              <table>
+                <caption id="data-caption">Datasets after cleaning</caption>
+                <thead><tr><th scope="col">Dataset</th><th scope="col">URLs</th><th scope="col">Phishing / legitimate</th><th scope="col">Registrable domains</th><th scope="col">Collected</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">PhiUSIIL <span class="cite">(Prasad &amp; Chandra, UCI #967)</span></th><td>235,349</td><td>100,499 / 134,850</td><td>197,297</td><td>Not stated (published 2024)</td></tr>
+                  <tr><th scope="row">Web page phishing detection <span class="cite">(Hannousse &amp; Yahiouche, Mendeley v3)</span></th><td>11,424</td><td>5,709 / 5,715</td><td>7,261</td><td>May 2020</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="note">Cleaning removed URLs that the app’s own validator rejects, exact duplicates, and URLs with conflicting labels. Neither publisher documents where its URLs came from.</p>
+          </section>
+
+          <section id="method" aria-labelledby="method-title">
+            <h2 id="method-title">Method</h2>
+            <ol class="method-list">
+              <li><strong>Split by owner, not by row.</strong> URLs are grouped by registrable domain using the Public Suffix List, then assigned 70/15/15 to training, validation and test. No domain appears in two splits.</li>
+              <li><strong>Choose on validation only.</strong> Model family, settings and decision thresholds were selected on the validation split. Test sets were scored once, afterwards.</li>
+              <li><strong>Test across datasets.</strong> Models trained on one dataset were also tested on the other, after removing every domain seen in training or validation.</li>
+              <li><strong>Report uncertainty honestly.</strong> Ranges are 95% intervals from a bootstrap that resamples whole domains, because a few domains contribute many URLs.</li>
+            </ol>
+            <p>Three model families were compared: logistic regression on hand-designed lexical features (the baseline), gradient-boosted trees on the same features, and logistic regression on character 3–5-grams. The character n-gram model won on validation in both experiments.</p>
+          </section>
+
+          <section id="shortcut" aria-labelledby="shortcut-title">
+            <h2 id="shortcut-title">Finding: a dataset shortcut</h2>
+            <p>Before training anything, we profiled the URLs. PhiUSIIL’s legitimate class turned out to be built entirely from homepages:</p>
+            <div class="table-scroll" role="region" aria-labelledby="shortcut-caption" tabindex="0">
+              <table>
+                <caption id="shortcut-caption">Share of PhiUSIIL URLs with each property</caption>
+                <thead><tr><th scope="col">Property</th><th scope="col">Legitimate</th><th scope="col">Phishing</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">Uses https://</th><td>100%</td><td>49%</td></tr>
+                  <tr><th scope="row">Host starts with www.</th><td>100%</td><td>41%</td></tr>
+                  <tr><th scope="row">Has a path or query</th><td>0%</td><td>28%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>A rule with no machine learning—<em>legitimate if https, www and no path</em>—reaches <strong>F1 0.996</strong> on PhiUSIIL’s held-out domains and only <strong>0.754</strong> on the Hannousse dataset, where it flags 84% of legitimate URLs. A model that sees those properties would learn the dataset, not phishing. Our main model therefore sees only the hostname, with a leading <code>www.</code> removed.</p>
+          </section>
+
+          <section id="results" aria-labelledby="results-title">
+            <h2 id="results-title">Results</h2>
+            <p>Positive class is phishing. “Recall at 1% FPR” uses the threshold chosen on validation to allow 1% false positives; the false-positive rate it actually produced on each test set is shown next to it.</p>
+
+            <h3>Hostname model, trained on PhiUSIIL</h3>
+            <div class="table-scroll" role="region" aria-labelledby="res-a-caption" tabindex="0">
+              <table class="results">
+                <caption id="res-a-caption">Experiment A: held-out PhiUSIIL domains and the Hannousse dataset</caption>
+                <thead><tr><th scope="col">Test set</th><th scope="col">Model</th><th scope="col">ROC-AUC (95% interval)</th><th scope="col">PR-AUC</th><th scope="col">Recall at 1% FPR</th><th scope="col">Actual FPR</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row" rowspan="3">PhiUSIIL, held-out domains<span class="cell-note">35,816 URLs · 29,522 domains</span></th><td>Hostname candidate</td><td>0.919 (0.902–0.935)</td><td>0.925</td><td>0.662</td><td>0.9%</td></tr>
+                  <tr><td>Lexical baseline</td><td>0.781 (0.689–0.849)</td><td>0.827</td><td>0.469</td><td>1.1%</td></tr>
+                  <tr><td>Current demo model</td><td>0.848 (0.809–0.885)</td><td>0.840</td><td>0.530</td><td>0.7%</td></tr>
+                  <tr><th scope="row" rowspan="3">Hannousse, different dataset<span class="cell-note">9,625 URLs · 6,576 domains</span></th><td>Hostname candidate</td><td>0.741 (0.711–0.772)</td><td>0.769</td><td>0.356</td><td>6.2%</td></tr>
+                  <tr><td>Lexical baseline</td><td>0.664 (0.618–0.709)</td><td>0.734</td><td>0.384</td><td>10.7%</td></tr>
+                  <tr><td>Current demo model</td><td>0.717 (0.682–0.751)</td><td>0.700</td><td>0.724</td><td>41.4%</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <figure class="chart chart-light">
+              <svg class="dotplot" viewBox="0 0 640 212" role="img" aria-labelledby="dotplot2-title dotplot2-desc" xmlns="http://www.w3.org/2000/svg">
+                <title id="dotplot2-title">ROC-AUC on two test sets, hostname candidate versus current demo model</title>
+                <desc id="dotplot2-desc">Dots show ROC-AUC; horizontal bars show 95% intervals from a domain-level bootstrap. The same values appear in the table above.</desc>
+                <line class="grid" x1="214.0" x2="214.0" y1="20" y2="186"/>
+                <text class="tick" x="214.0" y="204" text-anchor="middle">0.5</text>
+                <line class="grid" x1="294.4" x2="294.4" y1="20" y2="186"/>
+                <text class="tick" x="294.4" y="204" text-anchor="middle">0.6</text>
+                <line class="grid" x1="374.8" x2="374.8" y1="20" y2="186"/>
+                <text class="tick" x="374.8" y="204" text-anchor="middle">0.7</text>
+                <line class="grid" x1="455.2" x2="455.2" y1="20" y2="186"/>
+                <text class="tick" x="455.2" y="204" text-anchor="middle">0.8</text>
+                <line class="grid" x1="535.6" x2="535.6" y1="20" y2="186"/>
+                <text class="tick" x="535.6" y="204" text-anchor="middle">0.9</text>
+                <line class="grid" x1="616.0" x2="616.0" y1="20" y2="186"/>
+                <text class="tick" x="616.0" y="204" text-anchor="middle">1.0</text>
+                <text class="row-label" x="0" y="52">PhiUSIIL · held-out domains</text>
+                <line class="ci cand" x1="537.4" x2="563.9" y1="42" y2="42"/>
+                <circle class="dot cand" cx="550.9" cy="42" r="6"/>
+                <text class="val" x="571.9" y="46">0.919</text>
+                <line class="ci ref" x1="462.3" x2="523.3" y1="68" y2="68"/>
+                <rect class="dot ref" x="488.2" y="62.5" width="11" height="11"/>
+                <text class="val" x="531.3" y="72">0.848</text>
+                <text class="row-label" x="0" y="126">Hannousse · different dataset</text>
+                <line class="ci cand" x1="383.9" x2="432.8" y1="116" y2="116"/>
+                <circle class="dot cand" cx="407.9" cy="116" r="6"/>
+                <text class="val" x="440.8" y="120">0.741</text>
+                <line class="ci ref" x1="360.4" x2="416.0" y1="142" y2="142"/>
+                <rect class="dot ref" x="382.7" y="136.5" width="11" height="11"/>
+                <text class="val" x="424.0" y="146">0.717</text>
+                <text class="axis" x="616" y="14" text-anchor="end">ROC-AUC (0.5 = chance)</text>
+              </svg>
+              <figcaption>
+                <span class="legend"><span class="legend-dot legend-cand" aria-hidden="true"></span>Hostname candidate (experimental)</span>
+                <span class="legend"><span class="legend-dot legend-ref" aria-hidden="true"></span>Current demo model</span>
+                <span>Bars: 95% intervals, resampling whole domains.</span>
+              </figcaption>
+            </figure>
+
+            <h3>Full-URL model, trained on Hannousse</h3>
+            <p>The Hannousse dataset has realistic legitimate URLs (with paths, both http and https), so here the model may read the whole URL. Its test set is small, so the intervals are wide.</p>
+            <div class="table-scroll" role="region" aria-labelledby="res-b-caption" tabindex="0">
+              <table class="results">
+                <caption id="res-b-caption">Experiment B: held-out Hannousse domains</caption>
+                <thead><tr><th scope="col">Test set</th><th scope="col">Model</th><th scope="col">ROC-AUC (95% interval)</th><th scope="col">PR-AUC</th><th scope="col">Recall at 1% FPR</th><th scope="col">Actual FPR</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row" rowspan="3">Hannousse, held-out domains<span class="cell-note">1,969 URLs · 1,072 domains</span></th><td>Full-URL candidate</td><td>0.967 (0.940–0.985)</td><td>0.977</td><td>0.760</td><td>1.2%</td></tr>
+                  <tr><td>Lexical baseline</td><td>0.941 (0.904–0.971)</td><td>0.957</td><td>0.574</td><td>1.2%</td></tr>
+                  <tr><td>Current demo model</td><td>0.776 (0.651–0.858)</td><td>0.822</td><td>0.000*</td><td>0.0%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="note">* The current demo model gives its maximum score to more than 1% of legitimate validation URLs, so no threshold reaches 1% false positives and it flags nothing at that operating point.</p>
+
+            <h3>The current demo, as it actually behaves</h3>
+            <p>At the app’s own default cut-off (a model score of 0.5), the demo model catches <strong>10.6%</strong> of phishing URLs on held-out PhiUSIIL domains, and <strong>38.2%</strong> on the Hannousse dataset while flagging <strong>13.4%</strong> of legitimate URLs. This is why the demo is labelled a demonstration.</p>
+          </section>
+
+          <section id="limits" aria-labelledby="limits-title">
+            <h2 id="limits-title">Limitations</h2>
+            <ul>
+              <li><strong>Distribution shift.</strong> PhiUSIIL’s legitimate URLs are popular homepages; real-world legitimate links are far more varied, so false-positive rates in practice are likely higher than on PhiUSIIL.</li>
+              <li><strong>A few domains dominate.</strong> One hosting domain contributes 1,550 PhiUSIIL test URLs; one site is 18% of the Hannousse test set. That is why intervals are wide.</li>
+              <li><strong>No time dimension.</strong> Neither dataset has timestamps, so drift over time is unmeasured, and phishing infrastructure changes quickly.</li>
+              <li><strong>Text only.</strong> A URL-only model cannot recognise a compromised legitimate site, content on reputable hosting platforms, or a convincing new domain.</li>
+              <li><strong>Unknown provenance.</strong> Neither dataset documents its URL sources, so label noise cannot be quantified.</li>
+            </ul>
+          </section>
+
+          <section id="next" aria-labelledby="next-title">
+            <h2 id="next-title">What comes next</h2>
+            <p>The next step is improving cross-dataset behaviour, not the in-dataset score: training on both datasets together, weighting evaluation per domain, setting thresholds for each deployment context, and adding a licensed phishing source with timestamps to measure drift. Until then, the candidates stay experimental and the public demo keeps its warning labels.</p>
+            <p><a href="/#dissect">Try the URL dissector</a> · <a href="https://securemind-ai.streamlit.app/" rel="noopener noreferrer" target="_blank">Open the research demo<span class="visually-hidden"> (opens in a new tab)</span> <span aria-hidden="true">↗</span></a></p>
+          </section>
+
+          <section class="credits" aria-labelledby="credits-title">
+            <h2 id="credits-title">Data credits</h2>
+            <p>Prasad, A. &amp; Chandra, S. (2024). PhiUSIIL Phishing URL (Website) [Dataset]. UCI Machine Learning Repository. <a href="https://doi.org/10.1016/j.cose.2023.103545" rel="noopener noreferrer">doi:10.1016/j.cose.2023.103545</a>. CC BY 4.0.</p>
+            <p>Hannousse, A. &amp; Yahiouche, S. (2021). Web page phishing detection (Version 3) [Dataset]. Mendeley Data. <a href="https://doi.org/10.17632/c2gw7fy2j4.3" rel="noopener noreferrer">doi:10.17632/c2gw7fy2j4.3</a>. CC BY 4.0.</p>
+            <p>Public Suffix List (Mozilla Public License 2.0), used for domain grouping and in the URL dissector.</p>
+          </section>
+        </div>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <div class="footer-brand">
+          <p class="brand-name">SecureMind <span>Labs</span></p>
+          <p>Phishing-URL research, done in the open.</p>
+        </div>
+        <nav aria-label="Footer">
+          <ul>
+            <li><a href="/#dissect">Dissect a URL</a></li>
+            <li><a href="/research/" aria-current="page">Research</a></li>
+            <li><a href="https://securemind-ai.streamlit.app/" rel="noopener noreferrer" target="_blank">Research demo<span class="visually-hidden"> (opens in a new tab)</span> <span aria-hidden="true">↗</span></a></li>
+            <li><a href="https://github.com/Chandhu03/AI-Based-Phishing-URL-Detection" rel="noopener noreferrer" target="_blank">GitHub<span class="visually-hidden"> (opens in a new tab)</span> <span aria-hidden="true">↗</span></a></li>
+          </ul>
+        </nav>
+        <p class="footer-privacy">This site sets no cookies and runs no analytics. The dissector works entirely in your browser; links you enter are never sent to us or anyone else.</p>
+        <p class="footer-legal">© 2026 SecureMind Labs. Research prototype.</p>
+      </div>
+    </footer>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

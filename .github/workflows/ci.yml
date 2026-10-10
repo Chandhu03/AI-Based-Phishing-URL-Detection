@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    # launch/** branches are pushed only by maintainers (write access), so
+    # running CI on them never executes untrusted code.
+    branches: [main, "launch/**"]
+  workflow_dispatch:
+
+# Least privilege: every job only reads the repository. No secrets are used.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Supersede stale PR runs, but never cancel CI for a commit on main.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  # Ignore any user/system uv configuration so lock regeneration matches the
+  # documented command exactly.
+  UV_NO_CONFIG: "1"
+
+jobs:
+  security:
+    name: Secret scan, workflow lint, lock freshness, runtime audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      # SHA-256 of gitleaks_8.30.1_linux_x64.tar.gz; matches the release's
+      # checksums file and the GitHub release asset digest.
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+      ACTIONLINT_VERSION: "1.7.12"
+      # SHA-256 of actionlint_1.7.12_linux_amd64.tar.gz; verified the same way.
+      ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+    steps:
+      - name: Check out repository (full history for secret scanning)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Secret scan (gitleaks, every commit including merges)
+        env:
+          # Empty on push events. On pull_request events the checkout is a
+          # synthetic merge commit; the script checks both ends of the PR
+          # are inside the scanned history.
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          bash .github/scripts/secret-scan.sh "$RUNNER_TEMP/gitleaks" "$RUNNER_TEMP/gitleaks.log"
+
+      - name: Lint workflow files (actionlint, with shellcheck when available)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/actionlint.tar.gz" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install locked tools (hash-checked, wheels only)
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: --no-deps \
+            -r requirements-dev-lock.txt
+          python -m pip check
+
+      - name: Check lock files are up to date with requirements*.txt
+        # Regenerates both locks with the documented commands and fails on any
+        # diff. The --exclude-newer cutoff (recorded in the lock header and
+        # validated here) keeps the result stable when PyPI later adds files
+        # to an already-pinned release. tests/test_lockfiles.py pins the
+        # header to these exact commands.
+        run: |
+          cutoff="$(sed -n '2s/.* --exclude-newer \([^ ]*\) .*/\1/p' requirements-lock.txt)"
+          if ! [[ "$cutoff" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+            echo "::error::Missing or malformed --exclude-newer cutoff in requirements-lock.txt header."; exit 1
+          fi
+          work="$RUNNER_TEMP/lockcheck"
+          mkdir -p "$work"
+          cp requirements.txt requirements-dev.txt requirements-lock.txt requirements-dev-lock.txt "$work/"
+          cd "$work"
+          python -m uv pip compile requirements.txt --universal --python-version 3.12 \
+            --only-binary :all: --generate-hashes --exclude-newer "$cutoff" \
+            -o requirements-lock.txt --quiet
+          python -m uv pip compile requirements.txt requirements-dev.txt -c requirements-lock.txt \
+            --universal --python-version 3.12 --only-binary :all: --generate-hashes \
+            --exclude-newer "$cutoff" -o requirements-dev-lock.txt --quiet
+          diff -u "$GITHUB_WORKSPACE/requirements-lock.txt" requirements-lock.txt
+          diff -u "$GITHUB_WORKSPACE/requirements-dev-lock.txt" requirements-dev-lock.txt
+          echo "Lock files are consistent with requirements*.txt (package cutoff ${cutoff})."
+
+      - name: Audit the runtime lock (Linux production set)
+        run: python -m pip_audit --progress-spinner off --require-hashes --disable-pip -r requirements-lock.txt
+
+  test:
+    name: Install, compile, test, audit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies (hash-checked, wheels only)
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: --no-deps \
+            -r requirements-dev-lock.txt
+          python -m pip check
+
+      - name: Compile all Python sources
+        # -x skips any path containing a .venv or .git directory (either separator).
+        run: python -m compileall -q -f -x '[\\/]\.(venv|git)[\\/]' .
+
+      - name: Run test suite
+        run: python -m pytest -q -p no:cacheprovider --junitxml="$RUNNER_TEMP/pytest-junit.xml"
+
+      # Turn each failed test into a GitHub annotation so failures are visible
+      # on the run summary and pull requests without opening the raw log.
+      - name: Annotate failed tests
+        if: failure()
+        run: |
+          python - "$RUNNER_TEMP/pytest-junit.xml" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          def esc(text):
+              return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+          path = Path(sys.argv[1])
+          if not path.exists():
+              print("::error title=pytest::No JUnit report was written; pytest failed before collecting tests.")
+              sys.exit(0)
+          for case in ET.parse(path).getroot().iter("testcase"):
+              for bad in list(case.findall("failure")) + list(case.findall("error")):
+                  name = f"{case.get('classname')}.{case.get('name')}"
+                  detail = (bad.get("message") or "") + "\n" + (bad.text or "")
+                  print(f"::error title={esc(name)[:200]}::{esc(detail.strip()[-1800:])}")
+          PY
+
+      - name: Audit the installed environment (runtime + tools)
+        run: python -m pip_audit --progress-spinner off
+
+      - name: Static security lint (bandit, medium severity and above)
+        run: python -m bandit -q -ll -r app.py securemind
+
+  website:
+    name: Website (install, test, build, audit)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: website/.node-version
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Dependency audit (fail on high or critical)
+        run: npm audit --audit-level=high

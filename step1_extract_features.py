@@ -31,7 +31,7 @@ def extract_features(url):
     features = {}
     
     # Parse the URL into its parts
-        try:
+    try:
         parsed = urlparse(url)
     except Exception:
         parsed = urlparse("http://error.com")
@@ -46,7 +46,7 @@ def extract_features(url):
     
     
     # FEATURE 2: Domain Length
-        features["domain_length"] = len(domain)
+    features["domain_length"] = len(domain)
     
 
     # FEATURE 3: Path Length
