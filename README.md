@@ -1,4 +1,4 @@
-# Phishing URL Detection — ECE 569A AI Project
+# Phishing URL Detection
 
 
 ---
