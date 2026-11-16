@@ -126,6 +126,21 @@ test("mobile menu opens and closes with Escape", async ({ page, isMobile }) => {
   await page.keyboard.press("Escape");
   await expect(page.locator("#site-nav")).toBeHidden();
   await expect(toggle).toBeFocused();
+  // An in-page link keeps the page loaded, so the menu itself must close.
+  await toggle.click();
+  await page.locator("#site-nav").getByRole("link", { name: "Platform" }).click();
+  await expect(page.locator("#site-nav")).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("a failed engine download can be retried without reloading", async ({ page }) => {
+  await page.goto("/");
+  await page.route(/\/assets\/psl-rules-[^/]*\.js$/, (route) => route.abort(), { times: 1 });
+  await page.locator("#exhibit-input").fill("http://paypal.com.secure-account.tk/login");
+  await page.getByRole("button", { name: "Analyse", exact: true }).click();
+  await expect(page.locator("#exhibit-error")).toHaveText("The analysis engine could not load. Check your connection and try again.");
+  await page.getByRole("button", { name: "Analyse", exact: true }).click();
+  await expect(page.locator("#exhibit-verdict")).toHaveText("High risk");
 });
 
 test("with data, workspace pages do not scroll sideways at 320px", async ({ page }) => {

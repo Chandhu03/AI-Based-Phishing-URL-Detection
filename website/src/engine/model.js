@@ -5,6 +5,7 @@
 // produced by `phase3/run.py engine`; golden vectors check parity.
 
 import { murmurhash3_32 } from "./murmurhash3.js";
+import { onceUnlessFailed } from "./once.js";
 
 export const MODEL_FORMAT = "securemind.charngram-logreg/1";
 const encoder = new TextEncoder();
@@ -127,18 +128,13 @@ export async function verifiedScorer(model) {
   return createScorer(model);
 }
 
-let cached;
 /**
  * Lazily import the bundled artifact (a same-origin module; no fetch) and
  * verify it. Resolves to null when no artifact is bundled, so the platform
  * still works with indicators alone and says so; rejects when the artifact
  * fails its integrity check. Browser/Vite only.
  */
-export function loadModel() {
-  if (!cached) {
-    const modules = import.meta.glob("./models/url-host-model.js");
-    const load = modules["./models/url-host-model.js"];
-    cached = load ? load().then(({ MODEL }) => verifiedScorer(MODEL)) : Promise.resolve(null);
-  }
-  return cached;
-}
+export const loadModel = onceUnlessFailed(() => {
+  const load = import.meta.glob("./models/url-host-model.js")["./models/url-host-model.js"];
+  return load ? load().then(({ MODEL }) => verifiedScorer(MODEL)) : Promise.resolve(null);
+});

@@ -182,7 +182,7 @@ export function detectIndicators(f) {
         ? `The host is an IP address on a ${f.ipKind} network range, which normally refers to your own device or local network rather than a public site.`
         : "Organisations rarely send people to a bare IP address; it also avoids domain-based reputation and certificate checks.",
       f.ipVersion === 6 ? `[${host}]` : host));
-    if (f.rewritten && f.ipVersion === 4) {
+    if (f.rewritten) {
       out.push(make("ip-disguised", "high", "obfuscation", "IP address written in a disguised form",
         `Written as “${f.writtenHost}”, which browsers read as ${host}.`, f.writtenHost));
     }
@@ -279,7 +279,7 @@ export function detectIndicators(f) {
       "The path suggests a sign-in or account page, but the link does not use https.", f.path));
   }
 
-  if (f.port && f.port !== { http: "80", https: "443" }[f.scheme]) {
+  if (f.port) {
     out.push(make("port", "low", "infrastructure", "Non-standard port", `The link targets port ${f.port}.`, `:${f.port}`));
   }
 

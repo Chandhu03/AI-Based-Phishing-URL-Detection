@@ -2,6 +2,8 @@
 // The exhibit uses the same engine as the workspace and loads it only when a
 // visitor analyses a link. Output is built with textContent only.
 
+import { onceUnlessFailed } from "../engine/once.js";
+
 const toggle = document.querySelector(".nav-toggle");
 const nav = document.querySelector("#site-nav");
 if (toggle && nav) {
@@ -10,12 +12,17 @@ if (toggle && nav) {
     nav.classList.toggle("is-open", open);
   };
   toggle.addEventListener("click", () => set(toggle.getAttribute("aria-expanded") !== "true"));
+  // In-page links ("#platform") leave the page in place, so close the menu.
+  nav.addEventListener("click", (e) => {
+    if (e.target.closest("a")) set(false);
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") {
       set(false);
       toggle.focus();
     }
   });
+  // Pairs with the menu breakpoint in site.css (@media (max-width: 760px)).
   matchMedia("(min-width: 761px)").addEventListener("change", () => set(false));
 }
 
@@ -25,22 +32,12 @@ if (form) {
   const error = document.querySelector("#exhibit-error");
   const status = document.querySelector("#exhibit-status");
   const body = document.querySelector(".exhibit-body");
-  let engine;
-
-  async function getEngine() {
-    if (!engine) {
-      engine = Promise.all([import("../engine/analyze.js"), import("../engine/psl.js"), import("../engine/model.js")])
-        .then(async ([a, p, m]) => {
-          const [psl, scorer] = await Promise.all([p.loadPsl(), m.loadModel().catch(() => null)]);
-          return (raw) => a.analyzeUrl(raw, { psl, scorer });
-        })
-        .catch((err) => {
-          engine = null; // let the next attempt retry instead of reusing the failure
-          throw err;
-        });
-    }
-    return engine;
-  }
+  const getEngine = onceUnlessFailed(() =>
+    Promise.all([import("../engine/analyze.js"), import("../engine/psl.js"), import("../engine/model.js")])
+      .then(async ([a, p, m]) => {
+        const [psl, scorer] = await Promise.all([p.loadPsl(), m.loadModel().catch(() => null)]);
+        return (raw) => a.analyzeUrl(raw, { psl, scorer });
+      }));
 
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);

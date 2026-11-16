@@ -117,7 +117,7 @@ test("edit distance counts adjacent swaps as one edit", () => {
 test("brand reference data is well-formed", () => {
   for (const b of BRANDS) {
     assert.ok(b.tokens.every((t) => t === t.toLowerCase()));
-    for (const d of b.domains) assert.equal(psl.registrableDomain(d), d, `${d} must be a registrable domain`);
+    for (const d of b.domains) assert.equal(psl.split(d).registrableDomain, d, `${d} must be a registrable domain`);
   }
   assert.equal(officialBrandFor("paypal.com").id, "paypal");
 });

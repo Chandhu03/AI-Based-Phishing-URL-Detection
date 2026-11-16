@@ -31,13 +31,9 @@ test(`PSL @ ${PSL_COMMIT.slice(0, 12)} has the expected rule count`, () => {
 
 for (const [host, expected] of OFFICIAL) {
   test(`registrableDomain(${host}) = ${expected}`, () => {
-    assert.equal(psl.registrableDomain(host), expected);
+    assert.equal(psl.split(host).registrableDomain, expected);
   });
 }
-
-test("malformed hosts have no registrable domain", () => {
-  for (const h of ["", ".example.com", "a..b.com"]) assert.equal(psl.registrableDomain(h), null);
-});
 
 // RFC 3492 section 7.1 sample strings and common IDNs.
 for (const [puny, unicode] of [

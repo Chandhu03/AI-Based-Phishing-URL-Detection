@@ -67,7 +67,11 @@ Design decisions that matter for maintenance:
 3. **Model as data.** The model is trained in Python (`phase3/`, `run.py engine`)
    and exported as a code-free module; `engine.test.js` checks the JavaScript
    scores against Python golden vectors to 1e-9. Retraining means re-running
-   the export, never editing numbers.
+   the export, never editing numbers. The model sees hosts as
+   `securemind/url_validation.py` normalises them, so `url-anatomy.js` and
+   that validator are both tested against `../tests/fixtures/url_cases.json`
+   (same host, same error code); the few intentional differences are listed
+   there with the reason.
 4. **Published numbers are generated.** `scripts/research-metrics.mjs` fills
    `{{m:source:/json/pointer|format}}` tokens from `../phase3/reports/` at build
    time and fails the build if a value is missing.
