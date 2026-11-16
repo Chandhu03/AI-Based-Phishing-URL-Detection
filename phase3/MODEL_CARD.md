@@ -1,8 +1,9 @@
 # Model card: SecureMind Phase 3 URL-only phishing candidates
 
-**Status: EXPERIMENTAL. Not used by the application.**
-
-The live app still uses the unchanged synthetic-data demo model.
+**Status: EXPERIMENTAL.** Experiments A and B below are not used by any
+application. The Streamlit app still uses the unchanged synthetic-data demo
+model. The website's in-browser engine uses a separate model trained by the
+engine experiment; see "Engine model" at the end of this card.
 
 Every number below is copied from `reports/metrics.json`, which
 `python phase3/run.py evaluate` generated on 2026-10-09 with Python 3.12.10
@@ -146,3 +147,82 @@ threshold of 0.5 has recall 0.532 at 15.1% FPR.
 Inputs are pinned by SHA-256, splits are hash-based and seeds are fixed.
 Re-running on the same platform reproduced identical metrics; see the Phase
 3 report for evidence.
+
+## Engine model (shipped in the website)
+
+Numbers from `reports/engine/metrics.json` (`python phase3/run.py engine`,
+scikit-learn 1.8.0). Details and all tables: `reports/engine/ENGINE_REPORT.md`.
+
+- **Model.** HOST view (hostname, one leading `www.` removed); hashed
+  character 3–5-grams, 2^16 buckets; logistic regression, C = 1; int8
+  coefficients; Platt calibration. Trained on the union of PhiUSIIL and
+  Hannousse training domains (170,734 rows; 0 cross-dataset label
+  conflicts, 44 cross-dataset duplicates collapsed).
+- **Choices.** Size and C by validation PR-AUC, preferring the smallest
+  size within 0.002 of the best (2^18 scored 0.9057, 2^16 0.9054). int8
+  because it moved validation ROC-AUC by 0.0003. Calibration and the two
+  thresholds (validation FPR ≤ 1% "high", ≤ 5% "elevated") on validation
+  only.
+- **Held-out test domains** (shipped weights; baselines thresholded on the
+  same validation split):
+
+| Test set | Model | ROC-AUC | PR-AUC | recall / FPR at high | recall / FPR at elevated |
+|---|---|---|---|---|---|
+| PhiUSIIL (35,816) | engine | 0.916 | 0.921 | 0.642 / 0.009 | 0.742 / 0.050 |
+| PhiUSIIL | candidate A | 0.919 | 0.925 | 0.654 / 0.008 | 0.749 / 0.045 |
+| PhiUSIIL | demo model | 0.848 | 0.840 | 0.132 / 0.000 | 0.626 / 0.017 |
+| Hannousse (1,946) | engine | 0.850 | 0.899 | 0.538 / 0.036 | 0.666 / 0.112 |
+| Hannousse | candidate A | 0.832 | 0.881 | 0.525 / 0.049 | 0.651 / 0.102 |
+| Hannousse | demo model | 0.780 | 0.823 | 0.575 / 0.183 | 0.859 / 0.516 |
+
+- **What this supports.** Training on both datasets trades a small loss on
+  PhiUSIIL (ROC-AUC −0.003) for a gain on Hannousse (+0.018) and a lower
+  FPR at the high threshold there. The validation split is about 95%
+  PhiUSIIL, so thresholds are tuned to PhiUSIIL: on Hannousse the "high"
+  threshold gives 3.6% FPR, not 1%. Expect more false positives on varied
+  real-world legitimate hosts.
+- **Counted once per site** (`reports/engine/site_metrics.json`,
+  `python phase3/run.py engine-sites`, which `engine` also runs; same
+  shipped scores and thresholds). The table above counts URLs, and every URL
+  on one host gets the same score; one Hannousse domain is 18% of its test
+  URLs.
+
+| Test set | Counted | items | ROC-AUC | recall / FPR at high |
+|---|---|---|---|---|
+| PhiUSIIL | per URL | 35,816 | 0.916 | 0.642 / 0.009 |
+| PhiUSIIL | per host | 31,968 | 0.899 | 0.576 / 0.009 |
+| PhiUSIIL | per domain | 29,537 | 0.887 | 0.551 / 0.009 |
+| Hannousse | per URL | 1,946 | 0.850 | 0.538 / 0.036 |
+| Hannousse | per host | 1,208 | 0.758 | 0.315 / 0.037 |
+| Hannousse | per domain | 1,067 | 0.757 | 0.282 / 0.033 |
+
+- **Identity.** Model id `url-host-ea3f55ce1c18faa2`: `url-host-` plus the
+  first 16 hex digits of the SHA-256 of every field that decides a score
+  (format, view, n-gram settings, coefficients, intercept, calibration,
+  thresholds), in a canonical form shared by `engine.py` and `model.js`.
+  Same id, same scores; any change gives a new id. The browser, the CLI and
+  `engine-sites` refuse an artifact whose content does not match its id. The
+  artifact was first published as `url-host-20261113`; only the id changed
+  (weights, thresholds and every metric are unchanged).
+- **Input scope.** Only host names that pass IDNA2008 are scored, as in
+  training (the Python pipeline drops the rest). Browsers accept more (emoji,
+  symbols, mixed-direction labels); for those the website reports
+  "Characters outside the domain name standard" and does not use the model.
+  On 8,660 fuzzed Unicode hosts the browser and Python now agree on 8,656
+  (previously 6,093); the 4 left are characters a browser maps to `_`. IP
+  addresses are not scored either.
+- **Model-only false positives investigated.** On popular legitimate hosts
+  the model alone pushed `shopify.com`, `protonmail.com`, `cash.app` and some
+  country storefronts (`amazon.com.mx`, `google.co.in`) to Suspicious or
+  Inconclusive. The fix is in the brand reference list, not the model: these
+  brands and country domains are now listed, so their own sites are
+  recognised and the model is set aside, while look-alikes such as
+  `cashapp-support.xyz` remain High risk. `ipfs.io` and `*.myshopify.com`
+  still score high: anyone can publish there and phishing is common, so they
+  are labelled as shared hosting instead. These are spot checks, not a
+  measured false-positive rate.
+- **Transfer** (same configuration, trained on one dataset only): PhiUSIIL
+  → Hannousse ROC-AUC 0.838; Hannousse → PhiUSIIL 0.802.
+- **Use.** One input to an explainable, rule-based assessment in the
+  browser. It sees only the hostname, and a low score is not evidence of
+  safety.

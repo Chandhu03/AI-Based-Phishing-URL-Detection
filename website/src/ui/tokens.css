@@ -1,0 +1,83 @@
+/* SecureMind Labs design tokens.
+   One accent (iris) for interaction; risk colours are a separate scale and
+   never used decoratively. Themes: light, dark, or follow the system. */
+
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+
+  /* type scale (minor third from 14px) */
+  --t-xs: 0.75rem;
+  --t-sm: 0.8125rem;
+  --t-md: 0.875rem;
+  --t-base: 1rem;
+  --t-lg: 1.25rem;
+  --t-xl: 1.5625rem;
+  --t-2xl: 1.953rem;
+  --t-3xl: 2.441rem;
+  --t-4xl: clamp(2.25rem, 1.4rem + 3.2vw, 3.815rem);
+
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+  --r-1: 4px; --r-2: 8px; --r-3: 12px;
+  --dur: 140ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --measure: 68ch;
+
+  /* light */
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #e9edf1;
+  --ink: #16202b;
+  --ink-2: #3d4a57;
+  --muted: #5f6c79;
+  --line: #d5dce3;
+  --line-strong: #b7c1cb;
+  --control-border: #7d8996; /* 3:1 on surface and bg (WCAG 1.4.11) */
+  --accent: #4b4bc8;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6e6fb;
+  --focus: #4b4bc8;
+
+  --risk-high: #b5352d;
+  --risk-high-soft: #fbe7e5;
+  --risk-sus: #8a5a00;
+  --risk-sus-soft: #fbf0d9;
+  --risk-inc: #5c6977;
+  --risk-inc-soft: #e8ecf0;
+  --risk-low: #23785a;
+  --risk-low-soft: #e0f1ea;
+
+  --seg-scheme: #5f6c79;
+  --seg-sub: #a35c00;
+  --seg-domain: #16202b;
+  --seg-domain-bg: #ffe9a8;
+  --seg-suffix: #4b4bc8;
+  --seg-path: #3d4a57;
+  --seg-cred: #c23b33;
+
+  --shadow: 0 1px 0 rgb(22 32 43 / 4%), 0 8px 24px -16px rgb(22 32 43 / 24%);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141b; --surface: #151d26; --surface-2: #1c2632; --ink: #e6ebf0; --ink-2: #c3ccd5; --muted: #93a1af;
+    --line: #26313d; --line-strong: #364452; --control-border: #5d6d7d; --accent: #8f8fff; --accent-ink: #0e141b; --accent-soft: #23234a; --focus: #a5a5ff;
+    --risk-high: #ff7a70; --risk-high-soft: #3a1c1b; --risk-sus: #f0b44c; --risk-sus-soft: #33270f; --risk-inc: #a3afbc;
+    --risk-inc-soft: #222c37; --risk-low: #5ccf9f; --risk-low-soft: #12291f;
+    --seg-scheme: #93a1af; --seg-sub: #f0b44c; --seg-domain: #0e141b; --seg-domain-bg: #ffd866; --seg-suffix: #a5a5ff;
+    --seg-path: #c3ccd5; --seg-cred: #ff7a70;
+    --shadow: 0 1px 0 rgb(0 0 0 / 30%), 0 12px 32px -18px rgb(0 0 0 / 70%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141b; --surface: #151d26; --surface-2: #1c2632; --ink: #e6ebf0; --ink-2: #c3ccd5; --muted: #93a1af;
+  --line: #26313d; --line-strong: #364452; --control-border: #5d6d7d; --accent: #8f8fff; --accent-ink: #0e141b; --accent-soft: #23234a; --focus: #a5a5ff;
+  --risk-high: #ff7a70; --risk-high-soft: #3a1c1b; --risk-sus: #f0b44c; --risk-sus-soft: #33270f; --risk-inc: #a3afbc;
+  --risk-inc-soft: #222c37; --risk-low: #5ccf9f; --risk-low-soft: #12291f;
+  --seg-scheme: #93a1af; --seg-sub: #f0b44c; --seg-domain: #0e141b; --seg-domain-bg: #ffd866; --seg-suffix: #a5a5ff;
+  --seg-path: #c3ccd5; --seg-cred: #ff7a70;
+  --shadow: 0 1px 0 rgb(0 0 0 / 30%), 0 12px 32px -18px rgb(0 0 0 / 70%);
+  color-scheme: dark;
+}

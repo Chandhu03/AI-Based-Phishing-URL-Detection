@@ -4,9 +4,11 @@ PHISHING URL DETECTOR - SecureMind Labs
 
 This app examines the characters of a URL string only. It never visits,
 fetches or resolves the site. Live predictions come from a demonstration
-model trained on synthetic URLs; it has not been evaluated on real-world
-data. The tables at the bottom are an offline research benchmark and are
-not used for live checks.
+model trained on synthetic URLs; on held-out real phishing domains it
+catches about 1 in 10 phishing URLs at its default setting
+(phase3/reports). The tables at the bottom are an offline research
+benchmark and are not used for live checks. This app is the legacy course
+demo; the maintained product is the website workspace in website/.
 
 HOW TO RUN LOCALLY:
     streamlit run app.py
@@ -293,8 +295,9 @@ LIMITATIONS = (
     "No live reputation or blocklist lookup is performed.",
     "False positives and false negatives are possible.",
     "A result is not a security guarantee.",
-    "The live model is a demonstration trained on synthetic URLs and has not "
-    "been evaluated on real-world data.",
+    "The live model is a demonstration trained on synthetic URLs. On held-out "
+    "real phishing domains (PhiUSIIL) it catches about 1 in 10 phishing URLs at "
+    "its default setting; see the SecureMind Labs research page.",
 )
 
 

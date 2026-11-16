@@ -10,7 +10,7 @@
 // assumption, control/bidi characters, whitespace and backslashes rejected,
 // 2,048-character limit, and error messages that never echo the input.
 
-import { toUnicodeHost } from "./punycode.js";
+import { idnaProblem, toUnicodeHost } from "./punycode.js";
 
 export const MAX_URL_LENGTH = 2048;
 
@@ -31,7 +31,6 @@ const SCHEME_RE = /^[A-Za-z][A-Za-z0-9+.-]*$/;
 const SCHEME_COLON_RE = /^([A-Za-z][A-Za-z0-9+.-]*):/;
 const LABEL_RE = /^[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?$/;
 const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-const DEFAULT_PORTS = { http: "80", https: "443" };
 
 function fail(code) {
   return { ok: false, code, message: ERROR_MESSAGES[code] };
@@ -65,21 +64,6 @@ function ipv6Kind(ip) {
   return null;
 }
 
-const SCRIPTS = [
-  ["Latin", /\p{Script=Latin}/u],
-  ["Cyrillic", /\p{Script=Cyrillic}/u],
-  ["Greek", /\p{Script=Greek}/u],
-  ["Armenian", /\p{Script=Armenian}/u],
-];
-
-function scriptsIn(text) {
-  return SCRIPTS.filter(([, re]) => re.test(text)).map(([name]) => name);
-}
-
-/**
- * Dissect a URL. `psl` is a PublicSuffixList (see psl.js).
- * Returns { ok: false, code, message } or { ok: true, ...facts }.
- */
 export function dissect(raw, psl) {
   if (typeof raw !== "string") return fail("malformed");
   if (raw.length > MAX_URL_LENGTH) return fail("too_long");
@@ -141,11 +125,16 @@ export function dissect(raw, psl) {
   }
 
   const writtenNorm = written.host.toLowerCase().replace(/\.$/, "");
-  const display = isIp ? host : toUnicodeHost(host);
+  // Hosts outside IDNA2008 stay in their xn-- form, as browsers show them:
+  // decoded, format characters such as U+202E could reorder the text.
+  // The checks still read the decoded form (decodedHost); only display differs.
+  const idna = isIp ? null : idnaProblem(host);
+  const decoded = isIp ? host : toUnicodeHost(host);
+  const display = idna ? host : decoded;
   // "Rewritten" means the browser changed the host into something a reader
   // would not recognise from the original text (disguised IPs, fullwidth or
   // otherwise mapped characters). Plain IDN encoding is reported separately.
-  const rewritten = writtenNorm !== (isIpv6 ? `[${host}]` : host) && writtenNorm !== display.toLowerCase();
+  const rewritten = writtenNorm !== (isIpv6 ? `[${host}]` : host) && writtenNorm !== decoded.toLowerCase();
   const registrable = isIp ? null : psl.registrableDomain(host);
   const suffix = isIp ? null : psl.publicSuffix(host);
   const subdomain = registrable && host.length > registrable.length ? host.slice(0, -registrable.length - 1) : "";
@@ -161,6 +150,8 @@ export function dissect(raw, psl) {
     schemeExplicit,
     host,
     displayHost: display,
+    // For the indicator rules only: may contain invisible or reordering characters.
+    decodedHost: decoded,
     writtenHost: written.host,
     rewritten,
     isIp,
@@ -176,8 +167,11 @@ export function dissect(raw, psl) {
     fragment: url.hash,
     href: safeUrl.href,
   };
+  // Hosts browsers accept but IDNA2008 rejects (emoji, symbols): the model
+  // never saw such names in training (the Python pipeline drops them).
+  facts.idnaProblem = idna;
+  facts.ipKind = facts.isIp ? (facts.ipVersion === 4 ? ipv4Kind(facts.host) : ipv6Kind(facts.host)) : null;
   facts.segments = buildSegments(facts, isIpv6);
-  facts.observations = observe(facts, url, isIpv6);
   return facts;
 }
 
@@ -201,75 +195,4 @@ function buildSegments(f, isIpv6) {
   if (f.query) seg.push({ part: "query", text: f.query });
   if (f.fragment) seg.push({ part: "fragment", text: f.fragment });
   return seg;
-}
-
-function observe(f, url, isIpv6) {
-  const out = [];
-  const add = (id, level, title, detail) => out.push({ id, level, title, detail });
-
-  if (!f.schemeExplicit) {
-    add("no-scheme", "info", "No scheme was given",
-      "Analysed as http://. Whether the real link uses https cannot be known from what was entered.");
-  } else if (f.scheme === "http") {
-    add("http", "info", "Unencrypted connection",
-      "This link uses http://, so traffic to the site would not be encrypted. Many phishing pages use https too, so https alone is not reassurance.");
-  }
-
-  if (f.hasCredentials) {
-    add("credentials", "notable", "Text before an @ sign",
-      `Everything before the @ is treated as login details, not as the destination. The browser would go to ${f.displayHost}. (The hidden text is not shown here.)`);
-  }
-
-  if (f.isIp) {
-    const kind = f.ipVersion === 4 ? ipv4Kind(f.host) : ipv6Kind(f.host);
-    add("ip-host", "notable", "Raw IP address instead of a domain name",
-      kind ? `The host is an IP address on a ${kind} network range, which normally refers to your own device or local network.`
-        : "Legitimate public services rarely ask people to visit a bare IP address.");
-    if (f.rewritten && f.ipVersion === 4) {
-      add("ip-disguised", "notable", "IP address written in a disguised form",
-        `It was written as “${f.writtenHost}”, which browsers read as ${f.host}.`);
-    }
-  } else if (f.rewritten) {
-    add("host-rewritten", "notable", "Host rewritten by the browser",
-      `It was written as “${f.writtenHost}”; browsers normalise it to ${f.host}.`);
-  }
-
-  if (!f.isIp && f.displayHost !== f.host) {
-    const mixed = f.displayHost.split(".").some((label) => scriptsIn(label).length > 1);
-    add("idn", "notable", "International characters in the host",
-      `Shown to readers as “${f.displayHost}” but registered as ${f.host}. Characters from other alphabets can imitate familiar names.`);
-    if (mixed) {
-      add("mixed-script", "notable", "Mixed alphabets in one label",
-        "A single part of the name mixes alphabets (for example Latin and Cyrillic), a common look-alike technique.");
-    }
-  }
-
-  if (f.registrableDomain && f.subdomain) {
-    add("registrable", f.subdomainLabels >= 2 ? "notable" : "info", `The site is ${f.registrableDomain}`,
-      `“${f.subdomain}” is a subdomain chosen by whoever controls ${f.registrableDomain}. Familiar names appearing there say nothing about who owns the site.`);
-  } else if (!f.isIp && !f.registrableDomain) {
-    add("no-registrable", "info", "Host is itself a public suffix",
-      `${f.host} is a shared suffix (like a top-level domain) rather than an individually owned domain.`);
-  }
-
-  if (f.port && f.port !== DEFAULT_PORTS[f.scheme]) {
-    add("port", "info", "Non-standard port", `The link targets port ${f.port} instead of the usual ${DEFAULT_PORTS[f.scheme]}.`);
-  }
-
-  const embedded = [];
-  for (const [key, value] of url.searchParams) {
-    if (/^(?:https?:)?\/\//i.test(value) || /^https?%3a/i.test(value)) embedded.push(key);
-  }
-  if (embedded.length) {
-    add("embedded-url", "info", "Another web address inside the link",
-      `The query parameter${embedded.length > 1 ? "s" : ""} ${embedded.map((k) => `“${k}”`).join(", ")} contain${embedded.length > 1 ? "" : "s"} a URL. Links like this can forward you to a different site.`);
-  }
-  if (url.pathname.includes("//") || url.pathname.includes("@")) {
-    add("path-tricks", "info", "Unusual characters in the path",
-      "The path contains “//” or “@”, which can make a link look like it points somewhere else.");
-  }
-  if (f.href.length > 100) {
-    add("long", "info", "Long URL", `${f.href.length} characters. Long links can push the real domain out of view on small screens.`);
-  }
-  return out;
 }

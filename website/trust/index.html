@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy and security — SecureMind Labs</title>
+    <meta name="description" content="What SecureMind Labs stores, what it sends (nothing), the controls the browser enforces, the threat model, and how to report a vulnerability." />
+    <link rel="canonical" href="https://securemindlabs.com/trust/" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="/src/site/styles.css" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="SecureMind Labs" />
+    <meta property="og:title" content="Privacy and security — SecureMind Labs" />
+    <meta property="og:description" content="Local-first by design: links are never fetched or sent, and the browser enforces it." />
+    <meta property="og:url" content="https://securemindlabs.com/trust/" />
+    <meta property="og:image" content="https://securemindlabs.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SecureMind Labs: a phishing link split into its parts, marked High risk because the brand name sits in a subdomain of another domain." />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="/" aria-label="SecureMind Labs home">
+          <svg class="mark" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><rect x="1" y="1" width="26" height="26" rx="6" class="mark-frame"/><path d="M7 10h14M7 14h6M15 14h6M7 18h10" class="mark-lines"/><rect x="13" y="12" width="2" height="4" class="mark-cut"/></svg>
+          <span>SecureMind <span class="brand-sub">Labs</span></span>
+        </a>
+        <button class="nav-toggle btn btn-quiet btn-sm" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+        <nav class="site-nav" id="site-nav" aria-label="Primary">
+          <ul>
+            <li><a href="/#platform">Platform</a></li>
+            <li><a href="/research/">Research</a></li>
+            <li><a href="/trust/" aria-current="page">Privacy and security</a></li>
+            <li><a class="btn btn-primary btn-sm" href="/app/">Open the workspace</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <header class="page-hero">
+        <div class="wrap">
+          <h1 class="display">Local first, and enforced by the browser.</h1>
+          <p class="lede">SecureMind Labs has no server-side application, no accounts and no analytics. This page lists exactly what happens to the links and notes you put into it.</p>
+        </div>
+      </header>
+
+      <div class="wrap article">
+        <nav class="toc" aria-label="On this page">
+          <p>On this page</p>
+          <ol>
+            <li><a href="#data">Your data</a></li>
+            <li><a href="#never">What it never does</a></li>
+            <li><a href="#controls">Browser-enforced controls</a></li>
+            <li><a href="#threats">Threat model</a></li>
+            <li><a href="#limits">Limits</a></li>
+            <li><a href="#report">Report a vulnerability</a></li>
+          </ol>
+        </nav>
+        <article class="prose">
+          <h2 id="data">Your data</h2>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th scope="col">What</th><th scope="col">Where it lives</th><th scope="col">Leaves the device?</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Links you analyse</th><td>Memory, until you save them; then IndexedDB in this browser</td><td>No</td></tr>
+                <tr><th scope="row">Investigations, notes, indicators</th><td>IndexedDB in this browser profile</td><td>No</td></tr>
+                <tr><th scope="row">Exports and backups</th><td>Files you choose to save</td><td>Only if you share them</td></tr>
+                <tr><th scope="row">Theme preference</th><td>Local storage</td><td>No</td></tr>
+                <tr><th scope="row">Page requests</th><td>The hosting provider’s standard access logs (page addresses only)</td><td>Yes, as for any website; they never contain analysed links</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>The workspace is not synchronised. Another browser, device or person cannot see it. Clearing site data, or <a href="/app/#/settings">deleting the workspace</a>, removes it permanently.</p>
+
+          <h2 id="never">What it never does</h2>
+          <ul>
+            <li>Visit, fetch, resolve or screenshot a link you submit.</li>
+            <li>Send a link, note or indicator to any server, including ours.</li>
+            <li>Use cookies, analytics, advertising or third-party scripts and fonts.</li>
+            <li>Call a reputation or threat-intelligence service. If an enrichment integration is ever added, it will be opt-in, documented, and isolated from the core analysis.</li>
+          </ul>
+
+          <h2 id="controls">Browser-enforced controls</h2>
+          <p>Every response carries this Content Security Policy. <code>connect-src 'none'</code> means the page cannot make network requests at all, so the promises above do not depend on our code behaving.</p>
+          <p class="csp">default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types 'none'; upgrade-insecure-requests</p>
+          <ul>
+            <li><strong>No inline code.</strong> Scripts and styles come only from this site’s own hashed files.</li>
+            <li><strong>No framing.</strong> <code>frame-ancestors 'none'</code> and <code>X-Frame-Options: DENY</code> block clickjacking.</li>
+            <li><strong>Transport.</strong> HTTPS only, with HSTS; TLS 1.0 and 1.1 are refused.</li>
+            <li><strong>Isolation.</strong> Cross-Origin-Opener-Policy and Cross-Origin-Resource-Policy are set to same-origin; a Permissions-Policy disables camera, microphone, location, payment and USB.</li>
+          </ul>
+
+          <h2 id="threats">Threat model</h2>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th scope="col">Threat</th><th scope="col">Control</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">A crafted link injects script</th><td>All output is written as text, never parsed as HTML; CSP forbids inline and third-party scripts.</td></tr>
+                <tr><th scope="row">Analysis triggers a request to an attacker (SSRF, tracking pixels, DNS)</th><td>No code path fetches the link; <code>connect-src 'none'</code> blocks requests even if one were added.</td></tr>
+                <tr><th scope="row">Disguised destinations (look-alike letters, encoded IPs, <code>user@host</code>)</th><td>The browser’s own parser is used, then differences between what was written and what the browser reads are reported.</td></tr>
+                <tr><th scope="row">A malicious import file</th><td>Size limit, schema validation, per-record re-validation; values are rendered as text.</td></tr>
+                <tr><th scope="row">Spreadsheet formula injection in exports</th><td>CSV cells that start with <code>= + - @</code> are neutralised.</td></tr>
+                <tr><th scope="row">Embedded passwords in links leak into reports</th><td>Login text before <code>@</code> is never stored in output fields or exports.</td></tr>
+                <tr><th scope="row">Accidental clicks from reports</th><td>Exports and indicator lists defang URLs (<code>hxxps://example[.]com</code>).</td></tr>
+                <tr><th scope="row">Tampered model or rule files</th><td>Model and Public Suffix List ship as code-free data modules built from pinned, hash-verified sources.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2 id="limits">Limits</h2>
+          <ul>
+            <li>Anyone with access to this browser profile can read the workspace. Use an operating-system account you control, and treat exported backups as sensitive.</li>
+            <li>Browsers may evict site storage under pressure unless persistence is granted (Settings shows the status).</li>
+            <li>Verdicts are evidence for a person to weigh, not an automated block decision.</li>
+          </ul>
+
+          <h2 id="report">Report a vulnerability</h2>
+          <p>Email <strong>founder@securemindlabs.com</strong>; details are also in <a href="/.well-known/security.txt">security.txt</a>. Please do not include live credentials or private links. The code is open: <a href="https://github.com/Chandhu03/AI-Based-Phishing-URL-Detection" rel="noopener noreferrer" target="_blank">github.com/Chandhu03/AI-Based-Phishing-URL-Detection<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+        </article>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <p><strong>SecureMind Labs</strong> · Phishing-link investigation, local first.</p>
+        <nav aria-label="Footer">
+          <ul>
+            <li><a href="/app/">Workspace</a></li>
+            <li><a href="/research/">Research</a></li>
+            <li><a href="/trust/" aria-current="page">Privacy and security</a></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="/src/site/site.js"></script>
+  </body>
+</html>

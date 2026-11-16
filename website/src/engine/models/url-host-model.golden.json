@@ -1,0 +1,1913 @@
+{
+ "model_id": "url-host-ea3f55ce1c18faa2",
+ "vectors": [
+  {
+   "url": "https://example.com/",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "http://example.org/path?q=1",
+   "text": "example.org",
+   "logit": -3.0206058198418786,
+   "probability": 0.025840828052847976
+  },
+  {
+   "url": "https://www.example.com",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "https://WWW.EXAMPLE.COM/Path",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "HTTPS://Sub.Example.CO.UK:8443/x",
+   "text": "sub.example.co.uk",
+   "logit": -2.632795071163784,
+   "probability": 0.04384742555120183
+  },
+  {
+   "url": "example.com",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "www.example.com/login",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "https://example.com./",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "https://user:pass@example.com/",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "http://paypal.com@evil.example/",
+   "text": "evil.example",
+   "logit": -0.2647181082976381,
+   "probability": 0.5647536189306718
+  },
+  {
+   "url": "http://192.168.1.1/admin",
+   "text": "192.168.1.1",
+   "logit": 1.553965419279692,
+   "probability": 0.9441520921326536
+  },
+  {
+   "url": "http://3232235777/",
+   "text": "192.168.1.1",
+   "logit": 1.553965419279692,
+   "probability": 0.9441520921326536
+  },
+  {
+   "url": "http://0xC0A80101/",
+   "text": "192.168.1.1",
+   "logit": 1.553965419279692,
+   "probability": 0.9441520921326536
+  },
+  {
+   "url": "http://0300.0250.1.1/",
+   "text": "192.168.1.1",
+   "logit": 1.553965419279692,
+   "probability": 0.9441520921326536
+  },
+  {
+   "url": "http://127.1/",
+   "text": "127.0.0.1",
+   "logit": 0.8954077808313876,
+   "probability": 0.8696721015225836
+  },
+  {
+   "url": "http://[::1]:8080/",
+   "text": "::1",
+   "logit": -0.9656730393426107,
+   "probability": 0.32542266475312515
+  },
+  {
+   "url": "http://[2001:db8::1]/",
+   "text": "2001:db8::1",
+   "logit": -0.17544565892480418,
+   "probability": 0.5954375907515613
+  },
+  {
+   "url": "http://[::ffff:127.0.0.1]/",
+   "text": "::ffff:7f00:1",
+   "logit": -0.2524991704377037,
+   "probability": 0.5689883999056409
+  },
+  {
+   "url": "https://xn--pple-43d.com/",
+   "text": "xn--pple-43d.com",
+   "logit": 1.4300016775134303,
+   "probability": 0.9341755575826199
+  },
+  {
+   "url": "https://\u0430pple.com/",
+   "text": "xn--pple-43d.com",
+   "logit": 1.4300016775134303,
+   "probability": 0.9341755575826199
+  },
+  {
+   "url": "https://b\u00fccher.de/",
+   "text": "xn--bcher-kva.de",
+   "logit": 0.26298088879041803,
+   "probability": 0.7321101751269251
+  },
+  {
+   "url": "https://m\u00fcnchen.de/",
+   "text": "xn--mnchen-3ya.de",
+   "logit": -0.13062822108638827,
+   "probability": 0.6105805054313049
+  },
+  {
+   "url": "https://\uff45\uff58\uff41\uff4d\uff50\uff4c\uff45.com/",
+   "text": "example.com",
+   "logit": -2.1094107356266063,
+   "probability": 0.08759069117346271
+  },
+  {
+   "url": "https://xn--80ak6aa92e.com/",
+   "text": "xn--80ak6aa92e.com",
+   "logit": 0.29107707239309344,
+   "probability": 0.7398164213672423
+  },
+  {
+   "url": "https://a.b.c.d.e.f.example.com/",
+   "text": "a.b.c.d.e.f.example.com",
+   "logit": -1.5804239313185657,
+   "probability": 0.16844078742585422
+  },
+  {
+   "url": "https://www.www.example.com/",
+   "text": "www.example.com",
+   "logit": -0.6923714459801907,
+   "probability": 0.41503714272199227
+  },
+  {
+   "url": "https://www.com/",
+   "text": "www.com",
+   "logit": -0.22088734482604172,
+   "probability": 0.5798961222162283
+  },
+  {
+   "url": "https://ab.io/",
+   "text": "ab.io",
+   "logit": 0.49400379070274236,
+   "probability": 0.791081624237055
+  },
+  {
+   "url": "https://a.co/",
+   "text": "a.co",
+   "logit": -0.036798138245337286,
+   "probability": 0.6415733849277198
+  },
+  {
+   "url": "https://x.y/",
+   "text": "x.y",
+   "logit": -0.41906985261777097,
+   "probability": 0.5106485913911557
+  },
+  {
+   "url": "https://xn--fiq228c.xn--55qx5d.cn/",
+   "text": "xn--fiq228c.xn--55qx5d.cn",
+   "logit": 2.012860246499147,
+   "probability": 0.9699800115700434
+  },
+  {
+   "url": "https://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com/",
+   "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com",
+   "logit": 1.5573020576737522,
+   "probability": 0.9443999190607233
+  },
+  {
+   "url": "https://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.net/",
+   "text": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.net",
+   "logit": 0.42422199626853596,
+   "probability": 0.7743356033343527
+  },
+  {
+   "url": "https://123-456-789.example.com/",
+   "text": "123-456-789.example.com",
+   "logit": 0.3366236319291055,
+   "probability": 0.7519997521284555
+  },
+  {
+   "url": "https://login-secure-paypal.com.verify-account.xyz/",
+   "text": "login-secure-paypal.com.verify-account.xyz",
+   "logit": 7.582115280086509,
+   "probability": 0.999988073554916
+  },
+  {
+   "url": "https://my--double--hyphen.example/",
+   "text": "my--double--hyphen.example",
+   "logit": -0.22502278969440836,
+   "probability": 0.5784733698192273
+  },
+  {
+   "url": "https://_dmarc.example.com/",
+   "text": "_dmarc.example.com",
+   "logit": -1.48796388952638,
+   "probability": 0.18752004655940796
+  },
+  {
+   "url": "https://under_score.example.com/",
+   "text": "under_score.example.com",
+   "logit": -1.9214937431847166,
+   "probability": 0.11123792737833947
+  },
+  {
+   "url": "http://localhost/",
+   "text": "localhost",
+   "logit": 1.422363716017977,
+   "probability": 0.9335094789846582
+  },
+  {
+   "url": "http://localhost:3000/",
+   "text": "localhost",
+   "logit": 1.422363716017977,
+   "probability": 0.9335094789846582
+  },
+  {
+   "url": "http://a/",
+   "text": "a",
+   "logit": -0.5101703837385776,
+   "probability": 0.47851501124058254
+  },
+  {
+   "url": "http://ab/",
+   "text": "ab",
+   "logit": -0.5101703837385776,
+   "probability": 0.47851501124058254
+  },
+  {
+   "url": "http://google.com.verify.account.tk/update",
+   "text": "google.com.verify.account.tk",
+   "logit": 4.444459119090672,
+   "probability": 0.9990009994161858
+  },
+  {
+   "url": "microsoft.com.verify-wallet.top/support",
+   "text": "microsoft.com.verify-wallet.top",
+   "logit": 4.519410338503303,
+   "probability": 0.9991012026045839
+  },
+  {
+   "url": "https://paypal.com.billingwallet.top/billing",
+   "text": "paypal.com.billingwallet.top",
+   "logit": 3.9644151734954427,
+   "probability": 0.9980347049420605
+  },
+  {
+   "url": "http://microsoft.com.accountsupportlogin.info/wallet",
+   "text": "microsoft.com.accountsupportlogin.info",
+   "logit": 2.8059866745098327,
+   "probability": 0.9899983802186498
+  },
+  {
+   "url": "http://secure.github.io/account",
+   "text": "secure.github.io",
+   "logit": 5.6166887570572355,
+   "probability": 0.9998088815862978
+  },
+  {
+   "url": "http://github.com.billing-secure-support.co.uk/account",
+   "text": "github.com.billing-secure-support.co.uk",
+   "logit": 3.051128495909235,
+   "probability": 0.9929031931865244
+  },
+  {
+   "url": "https://chase.com.secure.billing.xyz/login",
+   "text": "chase.com.secure.billing.xyz",
+   "logit": 2.5404507538845253,
+   "probability": 0.9855162288901737
+  },
+  {
+   "url": "https://loginnetflix.tk/update",
+   "text": "loginnetflix.tk",
+   "logit": 2.450596877687638,
+   "probability": 0.9835897510829502
+  },
+  {
+   "url": "http://secure-verify-account-amazon.app/wallet",
+   "text": "secure-verify-account-amazon.app",
+   "logit": 5.525227732230702,
+   "probability": 0.9997825498914169
+  },
+  {
+   "url": "microsoft.com.support.net/login",
+   "text": "microsoft.com.support.net",
+   "logit": 1.3625175504411777,
+   "probability": 0.9280701087779762
+  },
+  {
+   "url": "http://paypal.com.support-update.top/billing",
+   "text": "paypal.com.support-update.top",
+   "logit": 5.6273164478560505,
+   "probability": 0.9998117267353076
+  },
+  {
+   "url": "chase.com.login.update.account.com/wallet",
+   "text": "chase.com.login.update.account.com",
+   "logit": 4.031179763085249,
+   "probability": 0.998211142680569
+  },
+  {
+   "url": "chase.com.accountsecure.top/billing",
+   "text": "chase.com.accountsecure.top",
+   "logit": 3.7091957340632336,
+   "probability": 0.9971847599371924
+  },
+  {
+   "url": "http://netflix.com.billing.app/update",
+   "text": "netflix.com.billing.app",
+   "logit": 1.3127889555460175,
+   "probability": 0.9232410631838525
+  },
+  {
+   "url": "http://microsoft.com.support.de/login",
+   "text": "microsoft.com.support.de",
+   "logit": 0.6720211883619045,
+   "probability": 0.8295921435010831
+  },
+  {
+   "url": "billing-account-support-netflix.app/support",
+   "text": "billing-account-support-netflix.app",
+   "logit": 3.9807196741795483,
+   "probability": 0.9980793333254762
+  },
+  {
+   "url": "account-apple.app/support",
+   "text": "account-apple.app",
+   "logit": 2.579962024634489,
+   "probability": 0.9862911403163569
+  },
+  {
+   "url": "http://loginwalletgithub.info/billing",
+   "text": "loginwalletgithub.info",
+   "logit": 3.930323740985177,
+   "probability": 0.9979380182088798
+  },
+  {
+   "url": "http://login.secure.support.microsoft.com/support",
+   "text": "login.secure.support.microsoft.com",
+   "logit": 3.6085842822155394,
+   "probability": 0.9967565519956603
+  },
+  {
+   "url": "http://update.secure.wallet.google.org/wallet",
+   "text": "update.secure.wallet.google.org",
+   "logit": 3.525422053475264,
+   "probability": 0.996354033853986
+  },
+  {
+   "url": "chase.com.wallet.support.io/update",
+   "text": "chase.com.wallet.support.io",
+   "logit": 2.2490588586916154,
+   "probability": 0.9783067081101748
+  },
+  {
+   "url": "walletupdatesecuregithub.net/wallet",
+   "text": "walletupdatesecuregithub.net",
+   "logit": 4.991467047216194,
+   "probability": 0.9995381873266317
+  },
+  {
+   "url": "https://paypal.com.verify-update.tk/login",
+   "text": "paypal.com.verify-update.tk",
+   "logit": 4.804298390591951,
+   "probability": 0.9993986247103983
+  },
+  {
+   "url": "paypal.com.verify.co.uk/account",
+   "text": "paypal.com.verify.co.uk",
+   "logit": 0.7162261926069107,
+   "probability": 0.8382327739697584
+  },
+  {
+   "url": "verify-amazon.xyz/update",
+   "text": "verify-amazon.xyz",
+   "logit": 5.0986193532326665,
+   "probability": 0.9996029856465679
+  },
+  {
+   "url": "http://chase.com.support.tk/account",
+   "text": "chase.com.support.tk",
+   "logit": 2.1176945593419143,
+   "probability": 0.9740019500536249
+  },
+  {
+   "url": "https://apple.com.support-secure-account.com/login",
+   "text": "apple.com.support-secure-account.com",
+   "logit": 3.8817373556038204,
+   "probability": 0.9977919633983399
+  },
+  {
+   "url": "https://billing-verify-github.app/update",
+   "text": "billing-verify-github.app",
+   "logit": 4.165942601608476,
+   "probability": 0.9985205633619854
+  },
+  {
+   "url": "http://wallet-microsoft.com/verify",
+   "text": "wallet-microsoft.com",
+   "logit": 1.2757572474811747,
+   "probability": 0.9194537460861341
+  },
+  {
+   "url": "https://amazon.com.updatelogin.xyz/account",
+   "text": "amazon.com.updatelogin.xyz",
+   "logit": 5.774043900388689,
+   "probability": 0.9998469422493991
+  },
+  {
+   "url": "https://chase.com.account.co.uk/login",
+   "text": "chase.com.account.co.uk",
+   "logit": -0.9613917656015406,
+   "probability": 0.3267506965683141
+  },
+  {
+   "url": "accountverifyapple.top/verify",
+   "text": "accountverifyapple.top",
+   "logit": 4.376786465481859,
+   "probability": 0.9989009745277508
+  },
+  {
+   "url": "http://secure.billing.netflix.app/billing",
+   "text": "secure.billing.netflix.app",
+   "logit": 1.694239862525962,
+   "probability": 0.9537200237544242
+  },
+  {
+   "url": "chase.com.loginsupport.io/account",
+   "text": "chase.com.loginsupport.io",
+   "logit": 2.439032770089419,
+   "probability": 0.9833241852177124
+  },
+  {
+   "url": "billing-account-login-paypal.info/wallet",
+   "text": "billing-account-login-paypal.info",
+   "logit": 4.3488662243533325,
+   "probability": 0.9988568464394775
+  },
+  {
+   "url": "account.chase.top/billing",
+   "text": "account.chase.top",
+   "logit": 4.044335568087695,
+   "probability": 0.9982439977542745
+  },
+  {
+   "url": "supportpaypal.net/billing",
+   "text": "supportpaypal.net",
+   "logit": 1.8373681778508903,
+   "probability": 0.9618632802964326
+  },
+  {
+   "url": "wallet.login.chase.com/login",
+   "text": "wallet.login.chase.com",
+   "logit": 1.7824760393524908,
+   "probability": 0.9589170457991568
+  },
+  {
+   "url": "update.secure.netflix.de/secure",
+   "text": "update.secure.netflix.de",
+   "logit": 2.841285335225897,
+   "probability": 0.9904798825341499
+  },
+  {
+   "url": "wallet.microsoft.co.uk/verify",
+   "text": "wallet.microsoft.co.uk",
+   "logit": -0.0757742193634281,
+   "probability": 0.6288257638614032
+  },
+  {
+   "url": "secureverifybillingpaypal.com/wallet",
+   "text": "secureverifybillingpaypal.com",
+   "logit": 2.4812097526688888,
+   "probability": 0.984272850757088
+  },
+  {
+   "url": "https://loginupdateamazon.ru/support",
+   "text": "loginupdateamazon.ru",
+   "logit": 4.987935395230803,
+   "probability": 0.999535880452353
+  },
+  {
+   "url": "https://google.com.secure-support-account.top/secure",
+   "text": "google.com.secure-support-account.top",
+   "logit": 5.984443244087267,
+   "probability": 0.9998862658525155
+  },
+  {
+   "url": "http://support-update-github.com/login",
+   "text": "support-update-github.com",
+   "logit": 4.37900290549719,
+   "probability": 0.9989044038421565
+  },
+  {
+   "url": "http://github.com.account-support-login.info/update",
+   "text": "github.com.account-support-login.info",
+   "logit": 4.054099749150143,
+   "probability": 0.9982679925706197
+  },
+  {
+   "url": "microsoft.com.secure.tk/support",
+   "text": "microsoft.com.secure.tk",
+   "logit": 2.2301491391860067,
+   "probability": 0.9777329370373736
+  },
+  {
+   "url": "chase.com.secure.tk/wallet",
+   "text": "chase.com.secure.tk",
+   "logit": 1.9487354470179763,
+   "probability": 0.967229152903965
+  },
+  {
+   "url": "https://paypal.com.walletupdateverify.org/billing",
+   "text": "paypal.com.walletupdateverify.org",
+   "logit": 3.3597737922713815,
+   "probability": 0.9953980339380331
+  },
+  {
+   "url": "secure.account.microsoft.tk/account",
+   "text": "secure.account.microsoft.tk",
+   "logit": 3.9668669473641067,
+   "probability": 0.9980414814243515
+  },
+  {
+   "url": "http://account.netflix.app/update",
+   "text": "account.netflix.app",
+   "logit": 2.3037646311379074,
+   "probability": 0.9798864017955001
+  },
+  {
+   "url": "github.com.secure.io/verify",
+   "text": "github.com.secure.io",
+   "logit": 2.1942343149656187,
+   "probability": 0.9766020788837487
+  },
+  {
+   "url": "apple.com.secure.ru/verify",
+   "text": "apple.com.secure.ru",
+   "logit": 1.8435416146861459,
+   "probability": 0.9621816526623244
+  },
+  {
+   "url": "https://update.microsoft.tk/login",
+   "text": "update.microsoft.tk",
+   "logit": 3.500344473912487,
+   "probability": 0.9962231569334122
+  },
+  {
+   "url": "http://amazon.com.login.org/account",
+   "text": "amazon.com.login.org",
+   "logit": 1.45435001060315,
+   "probability": 0.9362576925432433
+  },
+  {
+   "url": "http://update.wallet.account.paypal.app/login",
+   "text": "update.wallet.account.paypal.app",
+   "logit": 5.564904943920266,
+   "probability": 0.9997943913544081
+  },
+  {
+   "url": "http://microsoft.com.login-support.io/secure",
+   "text": "microsoft.com.login-support.io",
+   "logit": 3.052872611208527,
+   "probability": 0.9929205199323307
+  },
+  {
+   "url": "http://google.com.walletsecure.xyz/wallet",
+   "text": "google.com.walletsecure.xyz",
+   "logit": 4.488414226141376,
+   "probability": 0.9990610424539382
+  },
+  {
+   "url": "https://amazon.com.support-account.info/account",
+   "text": "amazon.com.support-account.info",
+   "logit": 3.694400061930031,
+   "probability": 0.9971255162883685
+  },
+  {
+   "url": "secure-update-chase.info/billing",
+   "text": "secure-update-chase.info",
+   "logit": 4.379282137764389,
+   "probability": 0.998904835116343
+  },
+  {
+   "url": "http://billing.apple.io/secure",
+   "text": "billing.apple.io",
+   "logit": 0.8756668028699999,
+   "probability": 0.8664810857393213
+  },
+  {
+   "url": "http://google.com.verify.billing.xyz/secure",
+   "text": "google.com.verify.billing.xyz",
+   "logit": 4.255407626676075,
+   "probability": 0.9986958496010403
+  },
+  {
+   "url": "microsoft.com.update.support.co.uk/account",
+   "text": "microsoft.com.update.support.co.uk",
+   "logit": 2.236613979259703,
+   "probability": 0.9779307467383802
+  },
+  {
+   "url": "https://support-login-chase.tk/login",
+   "text": "support-login-chase.tk",
+   "logit": 4.473318946454112,
+   "probability": 0.9990408399892593
+  },
+  {
+   "url": "https://microsoft.com.loginaccountwallet.org/login",
+   "text": "microsoft.com.loginaccountwallet.org",
+   "logit": 1.5499178885101335,
+   "probability": 0.9438500690501297
+  },
+  {
+   "url": "billing-google.io/secure",
+   "text": "billing-google.io",
+   "logit": 1.0361125011407126,
+   "probability": 0.8905796442577922
+  },
+  {
+   "url": "http://paypal.com.verifywallet.xyz/secure",
+   "text": "paypal.com.verifywallet.xyz",
+   "logit": 4.750616887820935,
+   "probability": 0.999351315532542
+  },
+  {
+   "url": "https://google.com.securebillingupdate.tk/login",
+   "text": "google.com.securebillingupdate.tk",
+   "logit": 3.6382561275177565,
+   "probability": 0.9968891796409731
+  },
+  {
+   "url": "https://chase.com.secure-login.de/account",
+   "text": "chase.com.secure-login.de",
+   "logit": 1.7549970576045986,
+   "probability": 0.9573614847580879
+  },
+  {
+   "url": "billing-verify-netflix.tk/support",
+   "text": "billing-verify-netflix.tk",
+   "logit": 2.8875807782761873,
+   "probability": 0.9910767441489968
+  },
+  {
+   "url": "http://wallet-verify-support-chase.tk/account",
+   "text": "wallet-verify-support-chase.tk",
+   "logit": 4.814149546210793,
+   "probability": 0.9994069243246494
+  },
+  {
+   "url": "http://verify-github.net/update",
+   "text": "verify-github.net",
+   "logit": 2.512109800343671,
+   "probability": 0.9849339675247868
+  },
+  {
+   "url": "https://github.com.account.top/support",
+   "text": "github.com.account.top",
+   "logit": 4.183721503537348,
+   "probability": 0.9985571763313913
+  },
+  {
+   "url": "https://verify.secure.github.xyz/update",
+   "text": "verify.secure.github.xyz",
+   "logit": 6.468203168077863,
+   "probability": 0.9999425414045179
+  },
+  {
+   "url": "https://netflix.com.support-login.tk/account",
+   "text": "netflix.com.support-login.tk",
+   "logit": 3.6344666101355703,
+   "probability": 0.996872547070573
+  },
+  {
+   "url": "chase.com.verifywalletsupport.de/wallet",
+   "text": "chase.com.verifywalletsupport.de",
+   "logit": 2.009716166962355,
+   "probability": 0.9698505109811686
+  },
+  {
+   "url": "https://chase.com.support.update.net/verify",
+   "text": "chase.com.support.update.net",
+   "logit": 2.782396568247738,
+   "probability": 0.989663231691387
+  },
+  {
+   "url": "https://netflix.com.support.login.wallet.net/verify",
+   "text": "netflix.com.support.login.wallet.net",
+   "logit": 3.732175509073805,
+   "probability": 0.9972743686145955
+  },
+  {
+   "url": "https://supportaccountamazon.xyz/wallet",
+   "text": "supportaccountamazon.xyz",
+   "logit": 5.03350465824718,
+   "probability": 0.999564781847267
+  },
+  {
+   "url": "http://netflix.com.supportwallet.top/wallet",
+   "text": "netflix.com.supportwallet.top",
+   "logit": 4.348243561943893,
+   "probability": 0.9988558424024295
+  },
+  {
+   "url": "http://chase.com.update.top/wallet",
+   "text": "chase.com.update.top",
+   "logit": 4.10772820555821,
+   "probability": 0.9983940625206424
+  },
+  {
+   "url": "amazon.com.wallet-update-secure.de/update",
+   "text": "amazon.com.wallet-update-secure.de",
+   "logit": 4.808313278949881,
+   "probability": 0.9994020211825821
+  },
+  {
+   "url": "paypal.com.login.wallet.account.ru/wallet",
+   "text": "paypal.com.login.wallet.account.ru",
+   "logit": 3.9297715726798508,
+   "probability": 0.9979364137549096
+  },
+  {
+   "url": "https://netflix.com.secure.verify.account.de/billing",
+   "text": "netflix.com.secure.verify.account.de",
+   "logit": 3.8389048576753657,
+   "probability": 0.9976546687102542
+  },
+  {
+   "url": "http://billingloginsupportmicrosoft.de/verify",
+   "text": "billingloginsupportmicrosoft.de",
+   "logit": 2.3922754085432985,
+   "probability": 0.9822066802089946
+  },
+  {
+   "url": "paypal.com.verify.account.billing.org/login",
+   "text": "paypal.com.verify.account.billing.org",
+   "logit": 2.412405748783055,
+   "probability": 0.9826965387649774
+  },
+  {
+   "url": "update.paypal.app/login",
+   "text": "update.paypal.app",
+   "logit": 5.323533227396926,
+   "probability": 0.9997109495094756
+  },
+  {
+   "url": "http://paypal.com.billingverify.info/billing",
+   "text": "paypal.com.billingverify.info",
+   "logit": 2.749402454553696,
+   "probability": 0.9891757637922974
+  },
+  {
+   "url": "http://amazon.com.supportupdate.app/support",
+   "text": "amazon.com.supportupdate.app",
+   "logit": 4.433939735857488,
+   "probability": 0.9989860700065845
+  },
+  {
+   "url": "amazon.com.wallet.org/verify",
+   "text": "amazon.com.wallet.org",
+   "logit": 0.43201773055204373,
+   "probability": 0.7762526588095052
+  },
+  {
+   "url": "http://secureupdateverifyamazon.io/verify",
+   "text": "secureupdateverifyamazon.io",
+   "logit": 4.396318969532233,
+   "probability": 0.9989308301867529
+  },
+  {
+   "url": "http://netflix.com.wallet.secure.support.tk/secure",
+   "text": "netflix.com.wallet.secure.support.tk",
+   "logit": 4.397417678151686,
+   "probability": 0.998932485299034
+  },
+  {
+   "url": "http://github.com.secure-update.net/update",
+   "text": "github.com.secure-update.net",
+   "logit": 3.529272777803741,
+   "probability": 0.9963737261513944
+  },
+  {
+   "url": "http://billing-secure-account-apple.org/update",
+   "text": "billing-secure-account-apple.org",
+   "logit": 2.3710952459388466,
+   "probability": 0.9816765753708725
+  },
+  {
+   "url": "http://chase.com.billing.account.update.tk/secure",
+   "text": "chase.com.billing.account.update.tk",
+   "logit": 3.8226552207952667,
+   "probability": 0.9976003819915841
+  },
+  {
+   "url": "http://google.com.support.io/account",
+   "text": "google.com.support.io",
+   "logit": 1.5229723892043425,
+   "probability": 0.941799953384868
+  },
+  {
+   "url": "netflix.com.billing.io/account",
+   "text": "netflix.com.billing.io",
+   "logit": 0.7085521885361488,
+   "probability": 0.8367585418163973
+  },
+  {
+   "url": "https://chase.com.billing.app/account",
+   "text": "chase.com.billing.app",
+   "logit": 0.8783173636370751,
+   "probability": 0.8669133435922228
+  },
+  {
+   "url": "https://walletaccountverifygithub.ru/billing",
+   "text": "walletaccountverifygithub.ru",
+   "logit": 4.191993921494276,
+   "probability": 0.998573902312808
+  },
+  {
+   "url": "https://google.com.secure.io/support",
+   "text": "google.com.secure.io",
+   "logit": 1.339540377167594,
+   "probability": 0.925874682032571
+  },
+  {
+   "url": "https://chase.com.update-secure.top/login",
+   "text": "chase.com.update-secure.top",
+   "logit": 5.6739387354824,
+   "probability": 0.9998237159956567
+  },
+  {
+   "url": "http://google.com.supportaccount.net/login",
+   "text": "google.com.supportaccount.net",
+   "logit": 2.9350743250893316,
+   "probability": 0.9916505159722772
+  },
+  {
+   "url": "update.support.verify.chase.ru/update",
+   "text": "update.support.verify.chase.ru",
+   "logit": 5.117817983280144,
+   "probability": 0.9996135961511607
+  },
+  {
+   "url": "http://paypal.com.support.secure.org/login",
+   "text": "paypal.com.support.secure.org",
+   "logit": 1.5115899843161242,
+   "probability": 0.9409130032049308
+  },
+  {
+   "url": "http://account-github.co.uk/billing",
+   "text": "account-github.co.uk",
+   "logit": 0.8675452174880887,
+   "probability": 0.8651492053434907
+  },
+  {
+   "url": "https://github.com.wallet.xyz/account",
+   "text": "github.com.wallet.xyz",
+   "logit": 4.510700488468024,
+   "probability": 0.9990900942838167
+  },
+  {
+   "url": "https://update-apple.net/verify",
+   "text": "update-apple.net",
+   "logit": 2.9471287028533464,
+   "probability": 0.9917902278960495
+  },
+  {
+   "url": "https://update.billing.github.co.uk/update",
+   "text": "update.billing.github.co.uk",
+   "logit": 2.4745211703298784,
+   "probability": 0.9841260306933268
+  },
+  {
+   "url": "https://apple.com.billing.app/wallet",
+   "text": "apple.com.billing.app",
+   "logit": 1.1576430306680574,
+   "probability": 0.9062108671459703
+  },
+  {
+   "url": "login.amazon.io/verify",
+   "text": "login.amazon.io",
+   "logit": 2.8149990021708646,
+   "probability": 0.9901235605356457
+  },
+  {
+   "url": "http://secure.account.apple.de/verify",
+   "text": "secure.account.apple.de",
+   "logit": 2.7593953989783095,
+   "probability": 0.9893257562718418
+  },
+  {
+   "url": "http://secure.billing.update.netflix.org/update",
+   "text": "secure.billing.update.netflix.org",
+   "logit": 1.544837193596736,
+   "probability": 0.9434687776992858
+  },
+  {
+   "url": "walletsupportchase.xyz/verify",
+   "text": "walletsupportchase.xyz",
+   "logit": 4.171654943415815,
+   "probability": 0.9985324271072792
+  },
+  {
+   "url": "verify-wallet-amazon.ru/wallet",
+   "text": "verify-wallet-amazon.ru",
+   "logit": 4.029586422479836,
+   "probability": 0.9982071220673228
+  },
+  {
+   "url": "chase.com.verifyloginsecure.info/support",
+   "text": "chase.com.verifyloginsecure.info",
+   "logit": 3.338028457254321,
+   "probability": 0.9952552678122528
+  },
+  {
+   "url": "http://microsoft.com.securewallet.ru/login",
+   "text": "microsoft.com.securewallet.ru",
+   "logit": 2.2336472586213754,
+   "probability": 0.9778401858508541
+  },
+  {
+   "url": "http://google.com.support.verify.billing.ru/update",
+   "text": "google.com.support.verify.billing.ru",
+   "logit": 3.7473453789087587,
+   "probability": 0.997331958476045
+  },
+  {
+   "url": "http://secure.verify.apple.io/wallet",
+   "text": "secure.verify.apple.io",
+   "logit": 5.49897655678433,
+   "probability": 0.9997743429665961
+  },
+  {
+   "url": "https://account.billing.github.net/account",
+   "text": "account.billing.github.net",
+   "logit": 3.109010617591262,
+   "probability": 0.9934563318739646
+  },
+  {
+   "url": "http://account-amazon.io/account",
+   "text": "account-amazon.io",
+   "logit": 2.1325676376914826,
+   "probability": 0.974528311500488
+  },
+  {
+   "url": "login-apple.tk/secure",
+   "text": "login-apple.tk",
+   "logit": 4.0729554543580395,
+   "probability": 0.9983134067540941
+  },
+  {
+   "url": "http://paypal.com.login.secure.verify.net/login",
+   "text": "paypal.com.login.secure.verify.net",
+   "logit": 4.855546704018161,
+   "probability": 0.9994405684575474
+  },
+  {
+   "url": "https://chase.com.wallet.tk/login",
+   "text": "chase.com.wallet.tk",
+   "logit": 2.067078508391286,
+   "probability": 0.9721301507682941
+  },
+  {
+   "url": "verify.update.login.amazon.com/account",
+   "text": "verify.update.login.amazon.com",
+   "logit": 5.168429389458371,
+   "probability": 0.9996402286276432
+  },
+  {
+   "url": "github.com.account-login.top/support",
+   "text": "github.com.account-login.top",
+   "logit": 4.791598765785714,
+   "probability": 0.9993877537533741
+  },
+  {
+   "url": "billing.secure.update.netflix.info/secure",
+   "text": "billing.secure.update.netflix.info",
+   "logit": 2.947316331259602,
+   "probability": 0.9917923841096606
+  },
+  {
+   "url": "http://google.com.verify.info/account",
+   "text": "google.com.verify.info",
+   "logit": 2.8081336496827065,
+   "probability": 0.9900283432609673
+  },
+  {
+   "url": "secureloginbillinggoogle.tk/billing",
+   "text": "secureloginbillinggoogle.tk",
+   "logit": 4.170856657893968,
+   "probability": 0.9985307749060859
+  },
+  {
+   "url": "https://verifybillingwalletnetflix.tk/verify",
+   "text": "verifybillingwalletnetflix.tk",
+   "logit": 2.532785272262121,
+   "probability": 0.9853609662388426
+  },
+  {
+   "url": "github.com.walletsupport.org/login",
+   "text": "github.com.walletsupport.org",
+   "logit": 1.5621481131984967,
+   "probability": 0.9447580144096651
+  },
+  {
+   "url": "https://chase.com.supportloginbilling.com/secure",
+   "text": "chase.com.supportloginbilling.com",
+   "logit": 1.7678173267996027,
+   "probability": 0.9580941110995926
+  },
+  {
+   "url": "wallet-paypal.tk/verify",
+   "text": "wallet-paypal.tk",
+   "logit": 3.8223942943956057,
+   "probability": 0.9975995001406678
+  },
+  {
+   "url": "http://billing-login-microsoft.co.uk/billing",
+   "text": "billing-login-microsoft.co.uk",
+   "logit": 1.2949728020245488,
+   "probability": 0.9214397838363131
+  },
+  {
+   "url": "http://github.com.billing.ru/update",
+   "text": "github.com.billing.ru",
+   "logit": 2.217216262892169,
+   "probability": 0.9773320064603553
+  },
+  {
+   "url": "http://wallet.account.verify.google.tk/wallet",
+   "text": "wallet.account.verify.google.tk",
+   "logit": 4.41007162715022,
+   "probability": 0.998951363919544
+  },
+  {
+   "url": "http://secure-wallet-paypal.de/verify",
+   "text": "secure-wallet-paypal.de",
+   "logit": 3.006376986881384,
+   "probability": 0.9924439267184268
+  },
+  {
+   "url": "https://netflix.com.wallet.login.verify.co.uk/wallet",
+   "text": "netflix.com.wallet.login.verify.co.uk",
+   "logit": 2.8933567320628537,
+   "probability": 0.9911485591916135
+  },
+  {
+   "url": "github.com.secure.top/secure",
+   "text": "github.com.secure.top",
+   "logit": 4.5354949125283035,
+   "probability": 0.9991213615400631
+  },
+  {
+   "url": "microsoft.com.verify-wallet-login.de/secure",
+   "text": "microsoft.com.verify-wallet-login.de",
+   "logit": 3.2254563499390834,
+   "probability": 0.9944426561603233
+  },
+  {
+   "url": "http://apple.com.secureaccount.ru/verify",
+   "text": "apple.com.secureaccount.ru",
+   "logit": 2.670322011369464,
+   "probability": 0.9879129226202236
+  },
+  {
+   "url": "http://netflix.com.account-login-wallet.ru/secure",
+   "text": "netflix.com.account-login-wallet.ru",
+   "logit": 2.911460136579996,
+   "probability": 0.9913699561471958
+  },
+  {
+   "url": "https://cdn1.dif.org/",
+   "text": "cdn1.dif.org",
+   "logit": -1.4919794855023352,
+   "probability": 0.18665798259592647
+  },
+  {
+   "url": "https://m.v6b4p9gvupwp8.net/",
+   "text": "m.v6b4p9gvupwp8.net",
+   "logit": -0.08939505441125284,
+   "probability": 0.6243271953831736
+  },
+  {
+   "url": "https://login.vi8wxk2.de/",
+   "text": "login.vi8wxk2.de",
+   "logit": 2.6991367852497063,
+   "probability": 0.9883890915361884
+  },
+  {
+   "url": "https://cdn1.ldn5ynfo96.co.uk/",
+   "text": "cdn1.ldn5ynfo96.co.uk",
+   "logit": -0.06387075065354675,
+   "probability": 0.6327389568814729
+  },
+  {
+   "url": "https://login.8l5hdnq3z.org/",
+   "text": "login.8l5hdnq3z.org",
+   "logit": 0.3576787329990295,
+   "probability": 0.7575009047312792
+  },
+  {
+   "url": "https://m.f1jfiubxav45.net/",
+   "text": "m.f1jfiubxav45.net",
+   "logit": 0.18243334952778212,
+   "probability": 0.7092321388532933
+  },
+  {
+   "url": "https://m.1-e6vzy.info/",
+   "text": "m.1-e6vzy.info",
+   "logit": 0.9488177723337017,
+   "probability": 0.8779816225364943
+  },
+  {
+   "url": "https://m.zs7ub8.net/",
+   "text": "m.zs7ub8.net",
+   "logit": -0.0017335274680602142,
+   "probability": 0.6528737845625353
+  },
+  {
+   "url": "https://cdn1.ehi4c.net/",
+   "text": "cdn1.ehi4c.net",
+   "logit": 0.5682121664018027,
+   "probability": 0.8078665926757463
+  },
+  {
+   "url": "https://login.kso3.tk/",
+   "text": "login.kso3.tk",
+   "logit": 3.581450519697931,
+   "probability": 0.9966303421095081
+  },
+  {
+   "url": "https://cdn1.c70bcu8jm.top/",
+   "text": "cdn1.c70bcu8jm.top",
+   "logit": 3.5368082929942704,
+   "probability": 0.9964119560901105
+  },
+  {
+   "url": "https://login.7a3yiczd5-pb.io/",
+   "text": "login.7a3yiczd5-pb.io",
+   "logit": 2.2544078989825875,
+   "probability": 0.9784663723036213
+  },
+  {
+   "url": "https://app.yz24-cppszgnm.io/",
+   "text": "app.yz24-cppszgnm.io",
+   "logit": 0.28074042437302693,
+   "probability": 0.7369980579860622
+  },
+  {
+   "url": "https://app.o11h248-t.ru/",
+   "text": "app.o11h248-t.ru",
+   "logit": 1.1674220000507523,
+   "probability": 0.9073775115129775
+  },
+  {
+   "url": "https://login.2warznk2u8.co.uk/",
+   "text": "login.2warznk2u8.co.uk",
+   "logit": 1.0705489921821063,
+   "probability": 0.8952273283310178
+  },
+  {
+   "url": "https://app.03s385r.xyz/",
+   "text": "app.03s385r.xyz",
+   "logit": 2.3898631902737675,
+   "probability": 0.9821470744064342
+  },
+  {
+   "url": "https://login.fdzn05kla.info/",
+   "text": "login.fdzn05kla.info",
+   "logit": 1.3905668809167304,
+   "probability": 0.930668812055396
+  },
+  {
+   "url": "https://www.7cy.top/",
+   "text": "7cy.top",
+   "logit": 4.486536652023405,
+   "probability": 0.9990585529750078
+  },
+  {
+   "url": "https://login.vdyg4n1z.net/",
+   "text": "login.vdyg4n1z.net",
+   "logit": 1.9071524500145995,
+   "probability": 0.965316745903892
+  },
+  {
+   "url": "https://rwh015d.top/",
+   "text": "rwh015d.top",
+   "logit": 3.004439226806044,
+   "probability": 0.9924233873976452
+  },
+  {
+   "url": "https://m.r7tf98n.net/",
+   "text": "m.r7tf98n.net",
+   "logit": -0.17751827776812967,
+   "probability": 0.5947326363622106
+  },
+  {
+   "url": "https://m.xfaaq1ek.com/",
+   "text": "m.xfaaq1ek.com",
+   "logit": -0.3991604153417735,
+   "probability": 0.5176686748807947
+  },
+  {
+   "url": "https://m.iu6o6sc.tk/",
+   "text": "m.iu6o6sc.tk",
+   "logit": 0.962543268907059,
+   "probability": 0.8800420402336642
+  },
+  {
+   "url": "https://login.xt9ad9.top/",
+   "text": "login.xt9ad9.top",
+   "logit": 4.128737251435395,
+   "probability": 0.9984409149884436
+  },
+  {
+   "url": "https://uzp-sxqryc.top/",
+   "text": "uzp-sxqryc.top",
+   "logit": 3.280027108666583,
+   "probability": 0.9948525443110521
+  },
+  {
+   "url": "https://app.caj97h38x.info/",
+   "text": "app.caj97h38x.info",
+   "logit": -0.11633688835182415,
+   "probability": 0.6153662528035955
+  },
+  {
+   "url": "https://m.wbl1zeo.ru/",
+   "text": "m.wbl1zeo.ru",
+   "logit": 1.1028017120161673,
+   "probability": 0.8994213233047482
+  },
+  {
+   "url": "https://www.t23.info/",
+   "text": "t23.info",
+   "logit": 0.9246750316983299,
+   "probability": 0.8742834763947236
+  },
+  {
+   "url": "https://login.7gb.com/",
+   "text": "login.7gb.com",
+   "logit": 2.167679069323528,
+   "probability": 0.9757300695163561
+  },
+  {
+   "url": "https://app.vh2tcd6c1xp.org/",
+   "text": "app.vh2tcd6c1xp.org",
+   "logit": -0.14199197057716878,
+   "probability": 0.6067598066129225
+  },
+  {
+   "url": "https://m.z3tjxuds5k.info/",
+   "text": "m.z3tjxuds5k.info",
+   "logit": 0.1786283558894699,
+   "probability": 0.7081232836020162
+  },
+  {
+   "url": "https://www.24mxl1ynp.xyz/",
+   "text": "24mxl1ynp.xyz",
+   "logit": 3.1490027819363497,
+   "probability": 0.9938132751673285
+  },
+  {
+   "url": "https://www.t9qg.org/",
+   "text": "t9qg.org",
+   "logit": -2.815331870833936,
+   "probability": 0.03422869176315601
+  },
+  {
+   "url": "https://m.q5ddobrj.ru/",
+   "text": "m.q5ddobrj.ru",
+   "logit": 1.5855378838752443,
+   "probability": 0.9464560426595336
+  },
+  {
+   "url": "https://www.hq8cb13brn2if.info/",
+   "text": "hq8cb13brn2if.info",
+   "logit": 0.6849105677798475,
+   "probability": 0.8321488251120139
+  },
+  {
+   "url": "https://www.g2ob.xyz/",
+   "text": "g2ob.xyz",
+   "logit": 3.0887041828490744,
+   "probability": 0.9932673330748446
+  },
+  {
+   "url": "https://zm4w9.org/",
+   "text": "zm4w9.org",
+   "logit": -2.0561976635438213,
+   "probability": 0.09378253926402362
+  },
+  {
+   "url": "https://m.p8s2t7cfk1.io/",
+   "text": "m.p8s2t7cfk1.io",
+   "logit": -0.08503457184147989,
+   "probability": 0.6257697152854106
+  },
+  {
+   "url": "https://cdn1.jmef.ru/",
+   "text": "cdn1.jmef.ru",
+   "logit": 1.348253987457107,
+   "probability": 0.9267144152438171
+  },
+  {
+   "url": "https://www.ajlx44g391lmg.app/",
+   "text": "ajlx44g391lmg.app",
+   "logit": 1.134512321087576,
+   "probability": 0.9033987783432745
+  },
+  {
+   "url": "https://www.92pvtfr.app/",
+   "text": "92pvtfr.app",
+   "logit": 1.4051988749180149,
+   "probability": 0.9319896966617488
+  },
+  {
+   "url": "https://nyhf24fv71rnd.co.uk/",
+   "text": "nyhf24fv71rnd.co.uk",
+   "logit": -1.6410040813057634,
+   "probability": 0.15680032049815731
+  },
+  {
+   "url": "https://login.16afxervq.net/",
+   "text": "login.16afxervq.net",
+   "logit": 2.3300630892208645,
+   "probability": 0.980605150536112
+  },
+  {
+   "url": "https://z8x0arhhrozo.com/",
+   "text": "z8x0arhhrozo.com",
+   "logit": 0.5547360859711712,
+   "probability": 0.8048966871546634
+  },
+  {
+   "url": "https://m.m15bde1l.io/",
+   "text": "m.m15bde1l.io",
+   "logit": -0.044457435379950505,
+   "probability": 0.6390834078099761
+  },
+  {
+   "url": "https://a08fhxfx8.app/",
+   "text": "a08fhxfx8.app",
+   "logit": 1.1031923302180948,
+   "probability": 0.8994711916272781
+  },
+  {
+   "url": "https://www.fey-ry5yxpr5.ru/",
+   "text": "fey-ry5yxpr5.ru",
+   "logit": 0.5526691460041664,
+   "probability": 0.8044381044433913
+  },
+  {
+   "url": "https://login.fh2.de/",
+   "text": "login.fh2.de",
+   "logit": 1.7514970113957935,
+   "probability": 0.9571593540981645
+  },
+  {
+   "url": "https://www.r1a4bt3qt.xyz/",
+   "text": "r1a4bt3qt.xyz",
+   "logit": 2.467065964696931,
+   "probability": 0.983960793072391
+  },
+  {
+   "url": "https://gg-89av.org/",
+   "text": "gg-89av.org",
+   "logit": -1.9420483732197193,
+   "probability": 0.10840167063482578
+  },
+  {
+   "url": "https://login.etv08fdvr4j.top/",
+   "text": "login.etv08fdvr4j.top",
+   "logit": 3.2585820734239084,
+   "probability": 0.9946951829669932
+  },
+  {
+   "url": "https://app.u-99.ru/",
+   "text": "app.u-99.ru",
+   "logit": 0.7915368794260969,
+   "probability": 0.8521346935749791
+  },
+  {
+   "url": "https://m.738c1nrs.io/",
+   "text": "m.738c1nrs.io",
+   "logit": 0.12186861760527345,
+   "probability": 0.6912921179528936
+  },
+  {
+   "url": "https://login.u6i2dwhr-g.co.uk/",
+   "text": "login.u6i2dwhr-g.co.uk",
+   "logit": -0.2085063807002791,
+   "probability": 0.5841476318934977
+  },
+  {
+   "url": "https://www.81oopilkk9h3.xyz/",
+   "text": "81oopilkk9h3.xyz",
+   "logit": 1.3862383979363166,
+   "probability": 0.9302735352967899
+  },
+  {
+   "url": "https://app.hs54455v051l.co.uk/",
+   "text": "app.hs54455v051l.co.uk",
+   "logit": 0.05695794197342363,
+   "probability": 0.6714039562552103
+  },
+  {
+   "url": "https://www.co7wws.de/",
+   "text": "co7wws.de",
+   "logit": -1.2402388214243871,
+   "probability": 0.24665603885761386
+  },
+  {
+   "url": "https://m.1uha3q2uc8tx.info/",
+   "text": "m.1uha3q2uc8tx.info",
+   "logit": -0.12884274153568948,
+   "probability": 0.611179596833021
+  },
+  {
+   "url": "https://m.e8y008q.info/",
+   "text": "m.e8y008q.info",
+   "logit": 0.8219492370230688,
+   "probability": 0.8574624182892934
+  },
+  {
+   "url": "https://m.x46b6vp.info/",
+   "text": "m.x46b6vp.info",
+   "logit": 0.9012420715922143,
+   "probability": 0.870602689038794
+  },
+  {
+   "url": "https://pbzd2w-xy.top/",
+   "text": "pbzd2w-xy.top",
+   "logit": 2.932778913055558,
+   "probability": 0.9916236458421407
+  },
+  {
+   "url": "https://cdn1.opan.xyz/",
+   "text": "cdn1.opan.xyz",
+   "logit": 3.1490027819363497,
+   "probability": 0.9938132751673285
+  },
+  {
+   "url": "https://4fdy.net/",
+   "text": "4fdy.net",
+   "logit": -0.8159571116185742,
+   "probability": 0.3734068866766015
+  },
+  {
+   "url": "https://app.e-4cqaojaxf.org/",
+   "text": "app.e-4cqaojaxf.org",
+   "logit": -1.2728256681443535,
+   "probability": 0.23820872138622412
+  },
+  {
+   "url": "https://www.f5kk29s.info/",
+   "text": "f5kk29s.info",
+   "logit": 0.08592799947513263,
+   "probability": 0.6803617463373065
+  },
+  {
+   "url": "https://cdn1.1-urx.de/",
+   "text": "cdn1.1-urx.de",
+   "logit": -0.4769051731415328,
+   "probability": 0.49024195867008863
+  },
+  {
+   "url": "https://app.7wabn474uwt-2.ru/",
+   "text": "app.7wabn474uwt-2.ru",
+   "logit": -0.20401136124376285,
+   "probability": 0.5856881220841018
+  },
+  {
+   "url": "https://login.q9uck9i.app/",
+   "text": "login.q9uck9i.app",
+   "logit": 2.5542811517494695,
+   "probability": 0.9857922664786902
+  },
+  {
+   "url": "https://cdn1.xsj.ru/",
+   "text": "cdn1.xsj.ru",
+   "logit": 1.7585194177769978,
+   "probability": 0.9575639839331869
+  },
+  {
+   "url": "https://app.er3aetbd.top/",
+   "text": "app.er3aetbd.top",
+   "logit": 2.786663344403933,
+   "probability": 0.9897246631303186
+  },
+  {
+   "url": "https://login.5r2w03x.de/",
+   "text": "login.5r2w03x.de",
+   "logit": 1.3424751183592043,
+   "probability": 0.9261584878454875
+  },
+  {
+   "url": "https://www.sds4.xyz/",
+   "text": "sds4.xyz",
+   "logit": 4.147196702433679,
+   "probability": 0.9984809538170919
+  },
+  {
+   "url": "https://cdn1.zoq7co.tk/",
+   "text": "cdn1.zoq7co.tk",
+   "logit": 1.091544874558164,
+   "probability": 0.8979747506866858
+  },
+  {
+   "url": "https://login.gb6wy.org/",
+   "text": "login.gb6wy.org",
+   "logit": 0.006065959279326738,
+   "probability": 0.6553646300912076
+  },
+  {
+   "url": "https://lwiq75aa.net/",
+   "text": "lwiq75aa.net",
+   "logit": -0.7030257430136014,
+   "probability": 0.4113906433811303
+  },
+  {
+   "url": "https://m.vrla9.net/",
+   "text": "m.vrla9.net",
+   "logit": 0.12208742979855003,
+   "probability": 0.6913580283628566
+  },
+  {
+   "url": "https://app.01zcnd2i27.info/",
+   "text": "app.01zcnd2i27.info",
+   "logit": 0.9230955817826225,
+   "probability": 0.8740382248803231
+  },
+  {
+   "url": "https://m.7unjdm8.top/",
+   "text": "m.7unjdm8.top",
+   "logit": 2.2674747011146623,
+   "probability": 0.9788515872852108
+  },
+  {
+   "url": "https://cdn1.s9p7mz.app/",
+   "text": "cdn1.s9p7mz.app",
+   "logit": 2.025461065790541,
+   "probability": 0.9704936342586498
+  },
+  {
+   "url": "https://login.to5na-95brno.tk/",
+   "text": "login.to5na-95brno.tk",
+   "logit": 3.295773709514326,
+   "probability": 0.9949651261873242
+  },
+  {
+   "url": "http://224.71.244.129/github/secure",
+   "text": "224.71.244.129",
+   "logit": 0.9171006385060434,
+   "probability": 0.8731036215704706
+  },
+  {
+   "url": "http://64.183.71.113/microsoft/login",
+   "text": "64.183.71.113",
+   "logit": 0.9534988825313933,
+   "probability": 0.8786877343253999
+  },
+  {
+   "url": "http://81.89.157.34/netflix/account",
+   "text": "81.89.157.34",
+   "logit": 0.8398171311865896,
+   "probability": 0.8605173106838517
+  },
+  {
+   "url": "http://98.250.67.55/amazon/verify",
+   "text": "98.250.67.55",
+   "logit": -0.2121211921317226,
+   "probability": 0.5829076028783771
+  },
+  {
+   "url": "http://102.216.106.181/apple/update",
+   "text": "102.216.106.181",
+   "logit": 1.4110291074054093,
+   "probability": 0.9325094853712825
+  },
+  {
+   "url": "http://251.28.245.214/netflix/wallet",
+   "text": "251.28.245.214",
+   "logit": 1.0756863076443346,
+   "probability": 0.895905549896728
+  },
+  {
+   "url": "http://74.213.7.62/github/support",
+   "text": "74.213.7.62",
+   "logit": 0.9588992418329834,
+   "probability": 0.8794979614800164
+  },
+  {
+   "url": "http://222.71.243.182/google/verify",
+   "text": "222.71.243.182",
+   "logit": 1.6307361496283546,
+   "probability": 0.9495986550889717
+  },
+  {
+   "url": "http://69.193.253.238/google/update",
+   "text": "69.193.253.238",
+   "logit": 2.0768280661499414,
+   "probability": 0.9725005953748848
+  },
+  {
+   "url": "http://74.250.48.33/paypal/update",
+   "text": "74.250.48.33",
+   "logit": 1.1729309335707214,
+   "probability": 0.9080289824374874
+  },
+  {
+   "url": "http://171.245.68.192/netflix/secure",
+   "text": "171.245.68.192",
+   "logit": 1.3135648113517717,
+   "probability": 0.9233186383312882
+  },
+  {
+   "url": "http://184.230.41.82/amazon/wallet",
+   "text": "184.230.41.82",
+   "logit": 0.7871728295461693,
+   "probability": 0.8513568275785407
+  },
+  {
+   "url": "http://126.74.103.205/github/update",
+   "text": "126.74.103.205",
+   "logit": 0.7902321031954107,
+   "probability": 0.8519024781659901
+  },
+  {
+   "url": "http://12.209.85.227/paypal/secure",
+   "text": "12.209.85.227",
+   "logit": 2.2175768852190956,
+   "probability": 0.9773432810598665
+  },
+  {
+   "url": "http://225.229.243.119/github/account",
+   "text": "225.229.243.119",
+   "logit": 2.3139460810064287,
+   "probability": 0.9801677094706667
+  },
+  {
+   "url": "http://239.75.16.126/amazon/account",
+   "text": "239.75.16.126",
+   "logit": 1.3526814096959308,
+   "probability": 0.9271377229894692
+  },
+  {
+   "url": "http://46.41.124.172/microsoft/billing",
+   "text": "46.41.124.172",
+   "logit": 0.9202336719343485,
+   "probability": 0.8735927942136108
+  },
+  {
+   "url": "http://157.71.130.59/apple/login",
+   "text": "157.71.130.59",
+   "logit": 0.9202336719343485,
+   "probability": 0.8735927942136108
+  },
+  {
+   "url": "http://247.99.132.138/google/support",
+   "text": "247.99.132.138",
+   "logit": 1.799649660804744,
+   "probability": 0.959861492811862
+  },
+  {
+   "url": "http://213.56.239.244/netflix/login",
+   "text": "213.56.239.244",
+   "logit": 1.218413409868797,
+   "probability": 0.913251958257771
+  },
+  {
+   "url": "http://9.252.133.13/netflix/wallet",
+   "text": "9.252.133.13",
+   "logit": 1.6721153838231746,
+   "probability": 0.9523218925444872
+  },
+  {
+   "url": "http://134.23.197.112/google/account",
+   "text": "134.23.197.112",
+   "logit": 2.9787143373038294,
+   "probability": 0.992145408575761
+  },
+  {
+   "url": "http://67.164.100.111/apple/secure",
+   "text": "67.164.100.111",
+   "logit": 1.059827740730506,
+   "probability": 0.8937993462912357
+  },
+  {
+   "url": "http://83.71.163.89/github/secure",
+   "text": "83.71.163.89",
+   "logit": 1.8391585383389855,
+   "probability": 0.9619558756395663
+  },
+  {
+   "url": "http://114.95.235.109/apple/update",
+   "text": "114.95.235.109",
+   "logit": 1.4404333466624046,
+   "probability": 0.9350752474661542
+  },
+  {
+   "url": "http://149.61.253.47/google/verify",
+   "text": "149.61.253.47",
+   "logit": 0.5875815659639005,
+   "probability": 0.8120747345220113
+  },
+  {
+   "url": "http://60.28.227.7/google/login",
+   "text": "60.28.227.7",
+   "logit": 0.8287285155165158,
+   "probability": 0.8586279938629078
+  },
+  {
+   "url": "http://163.215.132.216/amazon/secure",
+   "text": "163.215.132.216",
+   "logit": 1.987388954748605,
+   "probability": 0.968915190003585
+  },
+  {
+   "url": "http://136.241.116.189/paypal/wallet",
+   "text": "136.241.116.189",
+   "logit": 1.7217926287211849,
+   "probability": 0.9554066833820322
+  },
+  {
+   "url": "http://149.94.202.102/google/wallet",
+   "text": "149.94.202.102",
+   "logit": 1.091544874558164,
+   "probability": 0.8979747506866858
+  },
+  {
+   "url": "http://164.240.226.58/apple/update",
+   "text": "164.240.226.58",
+   "logit": 1.1391205752996514,
+   "probability": 0.9039649625355729
+  },
+  {
+   "url": "http://38.223.110.21/chase/wallet",
+   "text": "38.223.110.21",
+   "logit": 1.153090146113662,
+   "probability": 0.9056632197819722
+  },
+  {
+   "url": "http://137.62.227.22/github/verify",
+   "text": "137.62.227.22",
+   "logit": 0.39167886281448094,
+   "probability": 0.7662076555075462
+  },
+  {
+   "url": "http://179.169.217.1/chase/wallet",
+   "text": "179.169.217.1",
+   "logit": 1.5356400679796771,
+   "probability": 0.9427723624290606
+  },
+  {
+   "url": "http://17.247.53.17/amazon/secure",
+   "text": "17.247.53.17",
+   "logit": 1.2079955443479988,
+   "probability": 0.9120798512109898
+  },
+  {
+   "url": "http://219.92.240.232/github/wallet",
+   "text": "219.92.240.232",
+   "logit": 0.7426564024539233,
+   "probability": 0.843228043519747
+  },
+  {
+   "url": "http://175.192.227.239/netflix/login",
+   "text": "175.192.227.239",
+   "logit": 1.539591566479572,
+   "probability": 0.9430725556940033
+  },
+  {
+   "url": "http://138.157.122.146/apple/account",
+   "text": "138.157.122.146",
+   "logit": 1.7977097379885245,
+   "probability": 0.9597558597117796
+  },
+  {
+   "url": "http://50.227.46.117/github/billing",
+   "text": "50.227.46.117",
+   "logit": 0.8869684613373037,
+   "probability": 0.8683159419847419
+  },
+  {
+   "url": "http://23.194.158.8/apple/wallet",
+   "text": "23.194.158.8",
+   "logit": 2.4878538377186104,
+   "probability": 0.984417370894476
+  },
+  {
+   "url": "https://www.paypal.com/",
+   "text": "paypal.com",
+   "logit": 0.3049000099844149,
+   "probability": 0.7435546156965454
+  },
+  {
+   "url": "https://paypal.com.login.net/",
+   "text": "paypal.com.login.net",
+   "logit": 2.5259065893350012,
+   "probability": 0.9852202448878279
+  },
+  {
+   "url": "https://www.apple.com/",
+   "text": "apple.com",
+   "logit": -0.6819511926058268,
+   "probability": 0.4186125671722881
+  },
+  {
+   "url": "https://apple.com.account.top/",
+   "text": "apple.com.account.top",
+   "logit": 3.147007165152649,
+   "probability": 0.9937959313046113
+  },
+  {
+   "url": "https://www.microsoft.com/",
+   "text": "microsoft.com",
+   "logit": -0.2939465148577865,
+   "probability": 0.5545864929446359
+  },
+  {
+   "url": "https://microsoft.com.support.tk/",
+   "text": "microsoft.com.support.tk",
+   "logit": 2.382181812080079,
+   "probability": 0.9819559588767163
+  },
+  {
+   "url": "https://www.amazon.com/",
+   "text": "amazon.com",
+   "logit": 0.30490000998441513,
+   "probability": 0.7435546156965454
+  },
+  {
+   "url": "https://amazon.com.billing.io/",
+   "text": "amazon.com.billing.io",
+   "logit": 1.1262616042398703,
+   "probability": 0.9023776204900839
+  },
+  {
+   "url": "https://www.netflix.com/",
+   "text": "netflix.com",
+   "logit": -0.32421220328648104,
+   "probability": 0.5440102886741381
+  },
+  {
+   "url": "https://netflix.com.billing.tk/",
+   "text": "netflix.com.billing.tk",
+   "logit": 1.4928785964357243,
+   "probability": 0.939427382548725
+  },
+  {
+   "url": "https://www.chase.com/",
+   "text": "chase.com",
+   "logit": -1.218766220315981,
+   "probability": 0.2523312599455334
+  },
+  {
+   "url": "https://chase.com.verify.tk/",
+   "text": "chase.com.verify.tk",
+   "logit": 2.5798984410089627,
+   "probability": 0.9862899267332044
+  },
+  {
+   "url": "https://www.github.com/",
+   "text": "github.com",
+   "logit": 1.1994894665096507,
+   "probability": 0.9111122456824109
+  },
+  {
+   "url": "https://github.com.update.de/",
+   "text": "github.com.update.de",
+   "logit": 2.7300126043315442,
+   "probability": 0.988878754218109
+  },
+  {
+   "url": "https://www.google.com/",
+   "text": "google.com",
+   "logit": -0.13245483542792252,
+   "probability": 0.6099672662138752
+  },
+  {
+   "url": "https://google.com.secure.ru/",
+   "text": "google.com.secure.ru",
+   "logit": 2.117694559341915,
+   "probability": 0.9740019500536249
+  }
+ ]
+}

@@ -34,6 +34,7 @@ $py = ".\.venv\Scripts\python.exe"
 & $py phase3/run.py verify-psl    # Public Suffix List vs. official test vectors
 & $py phase3/run.py prepare       # clean + split -> phase3/data/work/, reports/data_stats.json
 & $py phase3/run.py evaluate      # train/select/evaluate -> reports/, artifacts/
+& $py phase3/run.py engine        # browser model -> reports/engine/, website/src/engine/models/
 & $py -m pytest -q -p no:cacheprovider phase3/tests
 ```
 
@@ -75,6 +76,26 @@ On Linux, use `.venv/bin/python` instead of `$py`.
 The tests use synthetic in-memory fixtures. These are **not** evaluation
 results. The official PSL vector test runs only after `download`.
 
+## Engine experiment (the model the website ships)
+
+`python phase3/run.py engine` (module `engine.py`, after `prepare`) trains
+the HOST-view character 3–5-gram logistic regression on the union of both
+datasets' training domains, selects size and C on validation, quantises the
+coefficients, fits Platt scaling and two operating thresholds (validation
+FPR ≤ 1% and ≤ 5%) on validation, and scores each test set once.
+
+It writes:
+- `reports/engine/metrics.json` and `reports/engine/ENGINE_REPORT.md`
+- `website/src/engine/models/url-host-model.js`, a generated ES module with
+  the int8 coefficients (base64) and metadata
+- `website/src/engine/models/url-host-model.golden.json`, vectors for the
+  JavaScript scorer's parity test
+
+The export refuses to write anything unless an independent pure-Python
+scorer reproduces scikit-learn's logits to 1e-9. `tests/test_engine.py`
+covers hashing parity, quantisation bounds, calibration, validation-only
+threshold selection and the parity refusal.
+
 ## Dependency bloat: measured, proposed, not applied
 
 I measured the Linux x86_64 CPython 3.12 wheels in the dev lock:
@@ -107,6 +128,9 @@ I measured the Linux x86_64 CPython 3.12 wheels in the dev lock:
   `results/*.pkl` files are not touched.
 - **No network contact with the data.** Dataset URLs are handled as text
   and never requested.
-- **The app is untouched.** The existing app, demo model, locks and CI
-  workflow are unchanged. Phase 3 tests are not yet part of CI; see the
-  model card.
+- **The Streamlit app is not part of Phase 3.** Phase 3 does not change the
+  legacy app's demo model; the app's limitation text quotes the Phase 3
+  measurement of that model. Phase 3 tests run in CI. The website's
+  in-browser engine uses the model exported by `engine`; `engine-sites`
+  re-scores the test sets with that exported file and writes per-host and
+  per-domain metrics to `reports/engine/site_metrics.json`.

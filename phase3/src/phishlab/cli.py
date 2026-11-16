@@ -7,6 +7,12 @@ Commands (run in order; `all` runs prepare + evaluate):
   evaluate     train, select on validation, evaluate on held-out domains,
                write reports/ and artifacts/
   all          prepare + evaluate (requires a prior download)
+  engine       train/evaluate the browser-portable HOST-view model on both
+               datasets, write reports/engine/ and export it to
+               website/src/engine/models/ (requires a prior prepare)
+  engine-sites re-score the test sets with the exported model and report
+               metrics counted once per host and per domain
+               (reports/engine/site_metrics.json)
 """
 from __future__ import annotations
 
@@ -135,10 +141,68 @@ def cmd_evaluate(args) -> None:
     log(f"wrote {REPORTS_DIR / 'EVALUATION_REPORT.md'}")
 
 
+def cmd_engine(args) -> None:
+    from . import engine as E
+    from .reference import ReferenceModel
+
+    psl_check = cmd_verify_psl(args)
+    p_df = pd.read_parquet(WORK_DIR / "clean_phiusiil.parquet")
+    h_df = pd.read_parquet(WORK_DIR / "clean_hannousse.parquet")
+    # Baseline A = phase3 experiment A's validation-selected char n-gram model.
+    committed = json.loads((REPORTS_DIR / "metrics.json").read_text(encoding="utf-8"))
+    params_a = committed["experiments"]["A_host_phiusiil"]["models"]["logreg_charngram"]["params"]
+    metrics, exp = E.run(p_df, h_df, ReferenceModel(), params_a, log)
+    metrics = {"generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+               "environment": {"python": platform.python_version(), "sklearn": sklearn.__version__,
+                               "numpy": np.__version__, "pandas": pd.__version__},
+               "psl_vectors": psl_check, **metrics}
+    meta = {"format": exp["meta"]["format"], "id": None, "sha256": None,
+            **{k: v for k, v in exp["meta"].items() if k != "format"},
+            "evaluation": E.compact_evaluation(metrics, SOURCES)}
+    meta["id"], meta["sha256"] = E.model_identity(meta)  # content-addressed: same scores, same id
+    out_dir = REPORTS_DIR / "engine"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    models_dir = REPORTS_DIR.parents[1] / "website" / "src" / "engine" / "models"
+    metrics["export"] = E.export(meta, exp["coef"], models_dir / "url-host-model.js",
+                                 models_dir / "url-host-model.golden.json")
+    metrics["export"]["model_id"] = meta["id"]
+    metrics["export"]["model_sha256"] = meta["sha256"]
+    (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (out_dir / "ENGINE_REPORT.md").write_text(E.report_markdown(metrics), encoding="utf-8")
+    log(f"engine: {metrics['export']}")
+    cmd_engine_sites(args)  # per-site metrics must always describe the model just exported
+
+
+def cmd_engine_sites(args) -> None:
+    """Re-score the test sets with the exported artifact and count each host
+    and each registrable domain once. Writes reports/engine/site_metrics.json;
+    changes neither the model nor metrics.json."""
+    from . import engine as E
+
+    p_df = pd.read_parquet(WORK_DIR / "clean_phiusiil.parquet")
+    h_df = pd.read_parquet(WORK_DIR / "clean_hannousse.parquet")
+    union, _ = E.union_frames(p_df, h_df)
+    model_js = REPORTS_DIR.parents[1] / "website" / "src" / "engine" / "models" / "url-host-model.js"
+    out = {"generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "tests": {}}
+    for name in ("phiusiil", "hannousse"):
+        t = union[(union.split == "test") & (union.source == name)]
+        texts = E.host_texts(t["url"])
+        scores, meta = E.shipped_scores(model_js, texts)
+        out["model_id"] = meta["id"]
+        out["tests"][f"{name}_test"] = E.site_evaluation(texts, list(t["group"]), t["is_phishing"].to_numpy(),
+                                                         scores, meta["thresholds"])
+        r = out["tests"][f"{name}_test"]
+        log(f"{name}: per URL ROC={r['per_url']['roc_auc']:.4f}, per host {r['per_host']['roc_auc']:.4f}, "
+            f"per domain {r['per_domain']['roc_auc']:.4f}")
+    path = REPORTS_DIR / "engine" / "site_metrics.json"
+    path.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    log(f"wrote {path}")
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="phishlab", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["download", "verify-psl", "prepare", "evaluate", "all"])
+    ap.add_argument("command", choices=["download", "verify-psl", "prepare", "evaluate", "all", "engine", "engine-sites"])
     ap.add_argument("--bootstrap", type=int, default=200, help="domain-bootstrap resamples (0 to skip)")
     args = ap.parse_args(argv)
     if args.command == "download":
@@ -149,6 +213,10 @@ def main(argv=None) -> None:
         cmd_prepare(args)
     elif args.command == "evaluate":
         cmd_evaluate(args)
+    elif args.command == "engine":
+        cmd_engine(args)
+    elif args.command == "engine-sites":
+        cmd_engine_sites(args)
     else:
         cmd_prepare(args)
         cmd_evaluate(args)

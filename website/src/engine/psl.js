@@ -4,7 +4,9 @@
 // used, so hosts on shared platforms (e.g. name.github.io) group by owner.
 
 export class PublicSuffixList {
-  constructor(rules) {
+  /** @param {string[]} rules  @param {string|null} [commit] PSL commit the rules come from */
+  constructor(rules, commit = null) {
+    this.commit = commit;
     this.exact = new Set();
     this.wildcard = new Set();
     this.exception = new Set();
@@ -46,7 +48,7 @@ let cached;
 // module request; the submitted URL is never part of that request).
 export async function loadPsl() {
   if (!cached) {
-    cached = import("./generated/psl-rules.js").then(({ RULES }) => new PublicSuffixList(RULES));
+    cached = import("./generated/psl-rules.js").then(({ RULES, PSL_COMMIT }) => new PublicSuffixList(RULES, PSL_COMMIT));
   }
   return cached;
 }

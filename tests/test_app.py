@@ -31,8 +31,9 @@ LIMITATIONS = [
     "No live reputation or blocklist lookup is performed.",
     "False positives and false negatives are possible.",
     "A result is not a security guarantee.",
-    "The live model is a demonstration trained on synthetic URLs and has not "
-    "been evaluated on real-world data.",
+    "The live model is a demonstration trained on synthetic URLs. On held-out "
+    "real phishing domains (PhiUSIIL) it catches about 1 in 10 phishing URLs at "
+    "its default setting; see the SecureMind Labs research page.",
 ]
 VOTE_RE = re.compile(
     r"Model vote share: \d{1,3}% of trees agreed\. This is not a calibrated probability\.")
