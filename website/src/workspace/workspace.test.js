@@ -9,7 +9,7 @@ import {
   defangText, investigationToMarkdown, MAX_IMPORT_BYTES, parseBackup, parseBackupInChunks, parseIndicatorFile,
 } from "./io.js";
 import { createMemoryStore } from "./stores.js";
-import { createWorkspace, indicatorsFromAnalysis, normalizeIndicator, normalizeTags, WorkspaceError } from "./workspace.js";
+import { classifyIndicator, createWorkspace, indicatorsFromAnalysis, normalizeIndicator, normalizeTags, WorkspaceError } from "./workspace.js";
 
 const psl = new PublicSuffixList(RULES, PSL_COMMIT);
 let clock = Date.parse("2026-03-01T12:00:00Z");
@@ -295,11 +295,21 @@ test("backup ids must be strings and history actions must be known", () => {
   assert.deepEqual(parsed.records.investigations[0].history.map((h) => h.action), ["created"]);
 });
 
+test("URL indicators never keep login details, however they arrive", async () => {
+  const secret = "https://paypal.com:SECRETPW@evil.tk/x";
+  assert.equal(normalizeIndicator("url", secret), "https://evil.tk/x");
+  assert.deepEqual(classifyIndicator("hxxps://admin:SECRETPW@evil[.]tk/"), { type: "url", value: "https://evil.tk/" });
+  const files = [`type,value\nurl,${secret}\n`, `${secret}\n`,
+    JSON.stringify({ type: "bundle", objects: [{ type: "indicator", pattern: `[url:value = '${secret}']` }] })];
+  for (const text of files) assert.ok(!JSON.stringify(parseIndicatorFile(text)).includes("SECRETPW"), text);
+});
+
 test("indicator values are validated like the analyser: no truncation, no invisible characters, real IPv6", () => {
   assert.equal(normalizeIndicator("url", `https://example.com/${"a".repeat(2100)}`), null);
   assert.equal(normalizeIndicator("url", "https://exa‮mple.com/"), null);
   assert.equal(normalizeIndicator("url", "https://ex​ample.com/"), null);
   assert.equal(normalizeIndicator("url", "https://аpple.com/x"), "https://xn--pple-43d.com/x");
+  assert.equal(normalizeIndicator("url", "https://evil.com\\@good.example/"), null);
   assert.equal(normalizeIndicator("ipv6", "::::"), null);
   assert.equal(normalizeIndicator("ipv6", "deadbeef:"), null);
   assert.equal(normalizeIndicator("ipv6", "2001:DB8:0:0::1"), "2001:db8::1");

@@ -3,7 +3,7 @@
 // The analyses are produced by the real engine from the example links below;
 // nothing here is a recorded incident or real-world statistic.
 
-export const DEMO_URLS = Object.freeze([
+const DEMO_URLS = Object.freeze([
   "http://paypal.com.secure-account.tk/login",
   "https://xn--pple-43d.com/id/verify",
   "http://3232235777/bank/login",

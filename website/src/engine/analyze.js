@@ -4,13 +4,13 @@
 // network I/O; the PSL and model are bundled modules.
 
 import { maskUserinfo, refang } from "./defang.js";
-import { detectIndicators } from "./indicators.js";
+import { detectIndicators, SEVERITIES } from "./indicators.js";
 import { dissect } from "./url-anatomy.js";
 import { decideVerdict } from "./verdict.js";
 
-export const ENGINE_VERSION = "2.0.0";
+const ENGINE_VERSION = "2.0.0";
 
-const SEVERITY_ORDER = { high: 0, medium: 1, low: 2, info: 3 };
+const SEVERITY_ORDER = Object.fromEntries(SEVERITIES.map((s, i) => [s, i]));
 
 /**
  * Analyse one URL string.

@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..", "..", "phase3", "reports");
-export const SOURCES = { phase3: "metrics.json", engine: "engine/metrics.json", sites: "engine/site_metrics.json", data: "data_stats.json" };
+const SOURCES = { phase3: "metrics.json", engine: "engine/metrics.json", sites: "engine/site_metrics.json", data: "data_stats.json" };
 const TOKEN = /\{\{m:(\w+):([^|}]+)\|(\w+)\}\}/g;
 
 export function pointer(obj, path) {

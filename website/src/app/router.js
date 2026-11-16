@@ -14,7 +14,7 @@ const ROUTES = [
   ["settings", /^\/settings$/],
 ];
 
-export function parseRoute(hash) {
+function parseRoute(hash) {
   const path = (hash || "").replace(/^#/, "") || "/overview";
   for (const [name, re] of ROUTES) {
     const m = re.exec(path);

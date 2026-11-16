@@ -3,6 +3,7 @@
 // every rule is unit-tested without a browser.
 
 import { defang, refang } from "../engine/defang.js";
+import { readUrl } from "../engine/url-anatomy.js";
 import { STORES } from "./stores.js";
 
 export const INVESTIGATION_STATUSES = Object.freeze(["open", "investigating", "contained", "closed"]);
@@ -29,16 +30,12 @@ export function normalizeIndicator(type, value) {
   if (!v || v.length > LIMITS.value) return null; // reject, never truncate
   switch (type) {
     case "url": {
-      // Same rules as the analyser: no whitespace or invisible format
-      // characters (bidi, zero-width), http(s) only; stored as the browser's
-      // canonical form (IDN hosts in punycode).
-      if (!/^https?:\/\//i.test(v) || /[\s\p{Cc}\p{Cf}]/u.test(v)) return null;
-      try {
-        const href = new URL(v).href;
-        return href.length <= LIMITS.value ? href : null;
-      } catch {
-        return null;
-      }
+      // The analyser's own policy and parser, with an explicit http(s)
+      // scheme; stored as the browser's canonical form (IDN hosts in
+      // punycode) without login details, as analyses store links.
+      if (!/^https?:\/\//i.test(v)) return null;
+      const read = readUrl(v);
+      return read.ok && read.url.href.length <= LIMITS.value ? read.url.href : null;
     }
     case "domain":
     case "hostname": {
@@ -97,7 +94,7 @@ export function indicatorsFromAnalysis(report) {
 }
 
 const VERDICT_SEVERITY = { "high-risk": "high", suspicious: "medium", inconclusive: "low", "no-strong-indicators": "low" };
-export const VERDICT_LEVELS = Object.freeze(Object.keys(VERDICT_SEVERITY));
+const VERDICT_LEVELS = Object.freeze(Object.keys(VERDICT_SEVERITY));
 
 // ------------------------------------------------------------ damaged records
 // Records can be damaged by browser extensions, edits in developer tools or
@@ -533,7 +530,7 @@ const MUTATIONS = ["saveAnalysis", "saveAnalyses", "deleteAnalysis", "deleteAnal
   "addNote", "deleteNote", "linkAnalysis", "unlinkAnalysis", "deleteInvestigation", "upsertIndicator", "upsertIndicators",
   "updateIndicator", "deleteIndicator", "removeDamaged", "removeDemoData", "clearAll", "exclusive"];
 
-export function hostOf(url) {
+function hostOf(url) {
   try {
     return new URL(url).hostname;
   } catch {

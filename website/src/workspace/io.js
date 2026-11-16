@@ -26,8 +26,8 @@ export async function exportBackup(store, now = new Date()) {
   return { format: BACKUP_FORMAT, exportedAt: now.toISOString(), records };
 }
 
-export const MAX_IMPORT_RECORDS = 20000;
-export const MAX_IMPORT_ANALYSES = 10000;
+const MAX_IMPORT_RECORDS = 20000;
+const MAX_IMPORT_ANALYSES = 10000;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 const ID_RE = /^[\w-]{1,100}$/;
 const ID = { test: (v) => typeof v === "string" && ID_RE.test(v) };
@@ -306,7 +306,7 @@ export function indicatorsToStix(indicators, now = new Date()) {
  * header, or plain text with one value per line.
  * @returns {{items: Array<{type,value,confidence,tags}>, rejected: number, format: string}}
  */
-export const MAX_INDICATOR_IMPORT = 5000;
+const MAX_INDICATOR_IMPORT = 5000;
 
 export function parseIndicatorFile(text) {
   if (text.length > MAX_IMPORT_BYTES) throw new ImportError("The file is larger than 5 MB.");

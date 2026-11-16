@@ -11,7 +11,7 @@ const NAV = [
 ];
 const ACTIVE = { analysis: "analyses", investigation: "investigations" };
 
-export function Mark() {
+function Mark() {
   return (
     <svg class="mark" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
       <rect x="1" y="1" width="26" height="26" rx="6" class="mark-frame" />

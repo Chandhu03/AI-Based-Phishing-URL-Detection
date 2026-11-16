@@ -27,7 +27,7 @@ export function resolvePath(urlPath) {
   return null;
 }
 
-export function startServer(port = 4317) {
+function startServer(port = 4317) {
   const rules = parseHeadersFile(readFileSync(join(ROOT, "_headers"), "utf8"));
   const server = createServer((req, res) => {
     let target = null;

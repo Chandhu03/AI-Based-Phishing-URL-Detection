@@ -90,7 +90,12 @@ function ipv6Kind(ip) {
   return null;
 }
 
-export function dissect(raw, psl) {
+/**
+ * Apply the input policy and read the link as a browser would. The result's
+ * `url` has its login details removed; `hasCredentials` says whether it had
+ * any. Used by dissect() and to validate URL indicators the same way.
+ */
+export function readUrl(raw) {
   if (typeof raw !== "string") return fail("not_a_string");
   if (raw.length > MAX_URL_LENGTH) return fail("too_long");
   const s = raw.trim();
@@ -150,7 +155,23 @@ export function dissect(raw, psl) {
     }
   }
 
-  const writtenNorm = written.host.toLowerCase().replace(/\.$/, "");
+  const hasCredentials = Boolean(url.username || url.password);
+  // Never carry embedded login details into any output field.
+  url.username = "";
+  url.password = "";
+  return { ok: true, url, scheme, schemeExplicit, written: written.host, host, isIpv6, ipv4, hasCredentials };
+}
+
+/**
+ * Dissect a URL into the facts the indicator rules read. `psl` is a
+ * PublicSuffixList (psl.js). Returns { ok: false, code, message } or facts.
+ */
+export function dissect(raw, psl) {
+  const read = readUrl(raw);
+  if (!read.ok) return read;
+  const { url, scheme, schemeExplicit, host, isIpv6, ipv4, hasCredentials } = read;
+  const isIp = isIpv6 || ipv4;
+  const writtenNorm = read.written.toLowerCase().replace(/\.$/, "");
   // Hosts outside IDNA2008 stay in their xn-- form, as browsers show them:
   // decoded, format characters such as U+202E could reorder the text.
   // The checks still read the decoded form (decodedHost); only display differs.
@@ -166,10 +187,6 @@ export function dissect(raw, psl) {
     ? { registrableDomain: null, publicSuffix: null }
     : psl.split(host);
   const subdomain = registrable && host.length > registrable.length ? host.slice(0, -registrable.length - 1) : "";
-  const hasCredentials = Boolean(url.username || url.password);
-  // Never carry embedded login details into any output field.
-  url.username = "";
-  url.password = "";
   const port = url.port || null; // URL drops the scheme's default port
   const facts = {
     ok: true,
@@ -179,7 +196,7 @@ export function dissect(raw, psl) {
     displayHost: display,
     // For the indicator rules only: may contain invisible or reordering characters.
     decodedHost: decoded,
-    writtenHost: written.host,
+    writtenHost: read.written,
     rewritten,
     isIp,
     ipVersion: isIp ? (isIpv6 ? 6 : 4) : null,
