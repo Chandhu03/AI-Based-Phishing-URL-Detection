@@ -135,3 +135,49 @@ test("a backup restores rules switched off; a shared-domain close rule cannot be
   const [al] = await ws.listAlerts();
   assert.equal(al.closedByRule, rule.id, "the alert keeps which rule closed it");
 });
+
+test("rule suggestions: repeated analyst closes of a known-good host, never risky, shared or covered", async () => {
+  const ws = fresh();
+  const close = async (u, disposition = "benign") => {
+    const { created: [a] } = await ws.queueAlerts([item(u)]);
+    await ws.closeAlerts([a.id], { disposition });
+    return a;
+  };
+  await close("https://news.vendor.example/a");
+  await close("https://news.vendor.example/b", "false-positive");
+  await close("https://news.vendor.example/c", "false-positive");
+  await close("https://once.example/");
+  await close("https://corp.sharepoint.com/x");
+  await close("https://corp.sharepoint.com/y");
+  // A host that was ever judged high risk is never suggested, however often it was closed.
+  for (const p of ["login", "signin"]) await close(`http://paypal.com.secure-account.tk/${p}`);
+  // A true-positive close is not evidence of a good host.
+  await close("https://bad.example/1", "true-positive");
+  await close("https://bad.example/2", "true-positive");
+
+  let s = await ws.ruleSuggestions();
+  assert.deepEqual(s, [
+    { host: "news.vendor.example", alerts: 3, disposition: "false-positive" },
+    { host: "corp.sharepoint.com", alerts: 2, disposition: "benign" },
+  ], "a host rule on a shared platform names one known address, so it may be suggested");
+
+  await ws.createRule({ name: "Vendor", field: "domain", value: "vendor.example", action: "severity", severity: "low" });
+  s = await ws.ruleSuggestions();
+  assert.deepEqual(s.map((x) => x.host), ["corp.sharepoint.com"], "a host covered by a rule is not suggested again");
+
+  // Closes made by a rule do not feed suggestions.
+  await ws.createRule({ name: "Rule-closed", field: "host", value: "auto.example", action: "close", disposition: "benign" });
+  await ws.queueAlerts([item("https://auto.example/1"), item("https://auto.example/2")]);
+  assert.ok(!(await ws.ruleSuggestions()).some((x) => x.host === "auto.example"));
+});
+
+test("next open alert follows queue order, wraps, and skips closed alerts", async () => {
+  const ws = fresh();
+  const { created: [a, b, c] } = await ws.queueAlerts([item(LURE), item("https://paypa1.com/signin"), item(SAFE)]);
+  const order = (await ws.listAlerts({ status: "open" })).map((x) => x.id);
+  assert.equal((await ws.nextOpenAlert(order[0])).id, order[1]);
+  assert.equal((await ws.nextOpenAlert(order[2])).id, order[0], "wraps to the first");
+  await ws.closeAlerts([b.id, c.id], { disposition: "benign" });
+  assert.equal(await ws.nextOpenAlert(a.id), null, "no other open alert");
+  assert.equal((await ws.nextOpenAlert(b.id)).id, a.id, "from a closed alert, the first open one");
+});

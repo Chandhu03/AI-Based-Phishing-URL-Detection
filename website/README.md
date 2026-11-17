@@ -40,6 +40,11 @@ and reporting all run in the visitor's browser.
   sharepoint.com or google.com). Repeats of a rule-closed link fold into that
   alert. Rule-closed alerts are counted apart and kept out of the queue
   medians and false-positive rate. Restored rules arrive switched off.
+  The rules page suggests a host rule for any host that analysts closed
+  (benign, false positive or duplicate) at least twice, that was never
+  judged high risk or suspicious and has no rule yet; nothing is added
+  until the analyst accepts. Each alert links to the next open alert in
+  queue order.
 - **Reports.** A period report (7, 30 or 90 days) counted from stored
   records: alerts queued and reports with repeats, by source and verdict;
   escalations; closes by analysts (with dispositions) and by rules; median

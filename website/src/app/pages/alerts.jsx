@@ -254,12 +254,13 @@ export function AlertDetail({ id }) {
   const { data, loading } = useData(async () => {
     const alert = await ws.getAlert(id).catch(() => null);
     if (!alert) return null;
-    const [analysis, investigation, cases] = await Promise.all([
+    const [analysis, investigation, cases, next] = await Promise.all([
       alert.analysisId ? ws.getAnalysis(alert.analysisId).catch(() => null) : null,
       alert.investigationId ? ws.getInvestigation(alert.investigationId).catch(() => null) : null,
       ws.listInvestigations(),
+      ws.nextOpenAlert(alert.id),
     ]);
-    return { alert, analysis, investigation, cases: cases.filter((c) => c.status !== "closed") };
+    return { alert, analysis, investigation, cases: cases.filter((c) => c.status !== "closed"), next };
   }, [id]);
   const [disposition, setDisposition] = useState("");
   const [comment, setComment] = useState("");
@@ -268,7 +269,7 @@ export function AlertDetail({ id }) {
 
   if (loading && !data) return <PageHeader title="Alert" />;
   if (!data) return <PageHeader title="Alert not found" description="It may have been deleted from this workspace." />;
-  const { alert: a, analysis, investigation, cases } = data;
+  const { alert: a, analysis, investigation, cases, next } = data;
   const run = async (fn, success) => {
     const done = await act(fn, success);
     if (done !== undefined) focusTitle(); // the button that ran it may be gone now
@@ -293,6 +294,9 @@ export function AlertDetail({ id }) {
         <span>{ALERT_STATUS_LABEL[a.status]}</span>
         {a.externalId && <span class="muted small">Ref <code>{a.externalId}</code></span>}
         <span class="muted small">Seen {a.occurrences}× · first <Time iso={a.createdAt} />, last <Time iso={a.lastSeen} /></span>
+        <span class="spacer" />
+        {next ? <a class="btn btn-secondary btn-sm" href={`#/alerts/${next.id}`}>Next open alert<span class="visually-hidden">: {defang(next.host)}</span></a>
+          : <span class="muted small">No other open alerts</span>}
         {a.demo && <span class="demo-flag">Demo</span>}
       </div>
 
