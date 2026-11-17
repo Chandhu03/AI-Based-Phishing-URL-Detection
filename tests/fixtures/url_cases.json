@@ -1,7 +1,7 @@
 {
  "$comment": [
   "URL cases that securemind/url_validation.py and website/src/engine/url-anatomy.js must agree on.",
-  "Each case has the normalised ASCII host (accepted) or the error code (rejected). A `js` entry records an intentional difference, explained in `why`.",
+  "Each case has the normalised ASCII host (accepted) or the error code (rejected). A `js` entry records an intentional difference, explained in `why`; URL parsers differ on these hosts, so where one rejects it the JavaScript result must equal the Python one.",
   "Read by tests/test_url_parity_cases.py and website/src/engine/url-anatomy.test.js."
  ],
  "cases": [
@@ -83,7 +83,7 @@
   {"url": "https://fa\u00df.de/", "host": "xn--fa-hia.de"},
   {"url": "https://xn--fa-hia.de/", "host": "xn--fa-hia.de"},
   {"url": "https://\u03c2.com/", "host": "xn--3xa.com"},
-  {"url": "https://\u0661\u0662.com/", "error": "invalid_idn"},
+  {"url": "https://\u0661\u0662.com/", "error": "invalid_idn", "js": {"host": "xn--9hbc.com", "idnaProblem": "mixed-direction"}, "why": "Chrome 157 and Node 24 reject this host, as Python does; Node 22 accepts it. Where accepted, the engine flags idnaProblem and does not score it with the model."},
   {"url": "https://a\u200d.com/", "error": "control_chars"},
   {"url": "https://user:pw@example.com/", "host": "example.com"},
   {"url": "https://user@evil.com@good.com/", "host": "good.com"},

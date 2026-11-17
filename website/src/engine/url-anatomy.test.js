@@ -49,12 +49,14 @@ for (const [raw, code] of [
 }
 
 // Cases shared with the Python validator (tests/test_url_parity_cases.py).
-// A `js` entry is an intentional, explained difference.
+// A `js` entry is an intentional, explained difference: hosts outside
+// IDNA2008 that some URL parsers accept. Where this runtime's parser rejects
+// one, the result must be Python's.
 const SHARED = JSON.parse(readFileSync(new URL("../../../tests/fixtures/url_cases.json", import.meta.url), "utf8")).cases;
 for (const c of SHARED) {
   test(`shared case ${JSON.stringify(c.url).slice(0, 50)}`, () => {
-    const expected = c.js ?? c;
     const r = d(c.url);
+    const expected = c.js && r.ok ? c.js : c;
     if (expected.error) {
       assert.equal(r.code, expected.error);
       return;

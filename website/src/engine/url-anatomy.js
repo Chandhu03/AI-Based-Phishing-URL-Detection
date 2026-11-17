@@ -70,7 +70,9 @@ function hostTextProblem(written) {
   if (host.split(".").includes("")) return "invalid_host";
   // Non-ASCII digits map to ASCII before the IPv4 check, as in browsers.
   if (endsInNumber(host.normalize("NFKC"))) return "invalid_ip";
-  return /[^\x00-\x7f]/.test(host) ? "invalid_idn" : null;
+  // Parsers differ on names outside IDNA2008 (Node 22 rejects invalid xn--
+  // labels that Chrome and Node 24 accept); when one rejects, say why.
+  return /[^\x00-\x7f]/.test(host) || /(^|\.)xn--/i.test(host) ? "invalid_idn" : null;
 }
 
 function ipv4Kind(ip) {

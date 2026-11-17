@@ -13,6 +13,16 @@ import { decideVerdict, modelBand, VERDICTS } from "./verdict.js";
 
 const psl = new PublicSuffixList(RULES, PSL_COMMIT);
 const run = (raw, scorer = null) => analyzeUrl(raw, { psl, scorer, now: () => new Date("2026-01-01T00:00:00Z") });
+// URL parsers differ on names outside IDNA2008: Node 22 rejects invalid or
+// disallowed xn-- labels that Chrome and Node 24 accept, and Chrome rejects
+// some that Node accepts. Rejecting such a host is also safe (it is never
+// scored); it must then be reported as an IDN problem.
+const rejectedByThisRuntime = (url, r) => {
+  if (URL.canParse(url)) return false;
+  assert.equal(r.ok, false, url);
+  assert.equal(r.code, "invalid_idn", url);
+  return true;
+};
 const ids = (r) => r.indicators.map((i) => i.id);
 
 // ------------------------------------------------------------ murmurhash parity
@@ -294,10 +304,11 @@ test("hosts outside IDNA2008 are flagged and not scored, as the Python pipeline 
     ["https://pay\u00a3pal.com/", "disallowed-character"], // currency symbol
     ["https://pay\u00bepal.com/", "disallowed-character"], // fraction, becomes 3\u20444
     ["https://xn--a.com/", "disallowed-character"], // decodes to the control character U+0080
-    ["https://pay\u0871pal.com/", "mixed-direction"], // Arabic letter inside a Latin label (browsers parse this one)
+    ["https://pay\u0871pal.com/", "mixed-direction"], // Arabic letter inside a Latin label
     ["https://\u1100x.example/", "disallowed-character"], // a conjoining Hangul jamo that does not compose
   ]) {
     const r = run(url, MODEL_ARTIFACT);
+    if (rejectedByThisRuntime(url, r)) continue;
     assert.equal(r.ok, true, url);
     assert.equal(r.facts.idnaProblem, problem, url);
     assert.equal(r.model, null, url);
@@ -340,7 +351,9 @@ test("masking login text is linear on long pasted lines", async () => {
 
 test("a host with hidden formatting characters is shown encoded, never decoded", () => {
   // xn--lapyap-9l0c decodes to U+202E (right-to-left override) + "lapyap".
-  const r = run("https://xn--lapyap-9l0c.com/");
+  const url = "https://xn--lapyap-9l0c.com/";
+  const r = run(url);
+  if (rejectedByThisRuntime(url, r)) return;
   assert.equal(r.facts.displayHost, "xn--lapyap-9l0c.com");
   assert.ok(r.indicators.some((i) => i.id === "idn-nonstandard"));
   for (const i of r.indicators) assert.ok(!/[\u202a-\u202e\u2066-\u2069]/.test(`${i.title} ${i.detail} ${i.evidence}`), i.id);
@@ -360,9 +373,12 @@ test("look-alike checks still run on hosts outside IDNA2008; hidden formatting i
   assert.ok(mixed.indicators.some((i) => i.id === "mixed-script" && i.severity === "high"));
   assert.equal(mixed.verdict.level, "high-risk");
   // A right-to-left override hidden in the name.
-  const rlo = run("https://xn--lapyap-9l0c.com/", MODEL_ARTIFACT);
-  assert.equal(rlo.indicators.find((i) => i.id === "idn-nonstandard").severity, "medium");
-  assert.equal(rlo.verdict.level, "suspicious");
+  const rloUrl = "https://xn--lapyap-9l0c.com/";
+  const rlo = run(rloUrl, MODEL_ARTIFACT);
+  if (!rejectedByThisRuntime(rloUrl, rlo)) {
+    assert.equal(rlo.indicators.find((i) => i.id === "idn-nonstandard").severity, "medium");
+    assert.equal(rlo.verdict.level, "suspicious");
+  }
   // Writing a name in Unicode is not a "rewrite" just because it is shown encoded.
   assert.ok(!run("https://pay\u00a3pal.com/").indicators.some((i) => i.id === "host-rewritten"));
 });
