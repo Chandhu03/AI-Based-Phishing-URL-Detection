@@ -6,6 +6,7 @@ const ROUTES = [
   ["overview", /^\/overview$/],
   ["alerts", /^\/alerts$/],
   ["alert", /^\/alerts\/([\w-]+)$/],
+  ["email", /^\/email$/],
   ["analyze", /^\/analyze$/],
   ["analyses", /^\/analyses$/],
   ["analysis", /^\/analyses\/([\w-]+)$/],

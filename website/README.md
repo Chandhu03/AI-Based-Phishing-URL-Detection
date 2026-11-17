@@ -9,7 +9,7 @@ and reporting all run in the visitor's browser.
 | `/` | Public homepage with a live, local analysis of one link |
 | `/research/` | How the detection model was trained and evaluated (figures generated at build time) |
 | `/trust/` | Privacy and security: data flow, enforced controls, threat model, disclosure |
-| `/app/` | The analyst workspace: Overview, Alert queue, Analyse (one or many links), Analyses, Investigations, Indicators, Detection engine, Settings |
+| `/app/` | The analyst workspace: Overview, Alert queue, Reported email, Analyse (one or many links), Analyses, Investigations, Indicators, Detection engine, Settings |
 
 ## Capabilities
 
@@ -30,6 +30,18 @@ and reporting all run in the visitor's browser.
   existing investigation, which receives the analysis. Bulk triage and close,
   a full history per alert, and queue health for the last 30 days: backlog,
   oldest open alert, median time to triage and to close, false-positive rate.
+- **Reported email.** Open a reported message (`.eml`, or pasted source;
+  up to 5 MB). It is read as text: HTML is never rendered, remote content is
+  never loaded, attachments are listed but never opened, and the message is
+  not stored. When a user forwards the phishing message as an attachment,
+  the attached message is analysed. Shows sender, Reply-To and Return-Path,
+  the receiving server's SPF, DKIM and DMARC results, findings (DMARC
+  failure, a display name showing another address or a brand the sending
+  domain does not belong to, replies or bounces to another domain, link text
+  naming a different site, script links, risky, double-extension and
+  archive attachments) and every link with its verdict. Links can be queued
+  as alerts (source `reported-email`, the Message-ID as reference); the
+  report exports as Markdown with everything defanged.
 - **Analyses.** Every saved analysis with search (link or host), a verdict
   filter, pages of 25 and bulk deletion that also removes links to it.
 - **Investigations.** Status, priority, tags, notes, linked analyses and

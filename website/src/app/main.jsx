@@ -10,6 +10,7 @@ import { PageHeader } from "./components.jsx";
 import { AppContext } from "./context.js";
 import { AlertDetail, Alerts } from "./pages/alerts.jsx";
 import { Analyses } from "./pages/analyses.jsx";
+import { Email } from "./pages/email.jsx";
 import { Analyze, AnalysisDetail } from "./pages/analyze.jsx";
 import { Indicators } from "./pages/indicators.jsx";
 import { InvestigationDetail, Investigations } from "./pages/investigations.jsx";
@@ -26,6 +27,7 @@ function Page({ route }) {
     case "overview": return <Overview />;
     case "alerts": return <Alerts />;
     case "alert": return <AlertDetail id={route.id} />;
+    case "email": return <Email />;
     case "analyze": return <Analyze />;
     case "analyses": return <Analyses />;
     case "analysis": return <AnalysisDetail id={route.id} />;

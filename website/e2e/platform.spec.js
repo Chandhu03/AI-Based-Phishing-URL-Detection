@@ -148,7 +148,7 @@ test("with data, workspace pages do not scroll sideways at 320px", async ({ page
   await page.goto("/app/#/overview");
   await page.getByRole("button", { name: "Load demo workspace" }).click();
   await expect(page.locator(".demo-flag").first()).toBeVisible();
-  for (const route of ["#/overview", "#/alerts", "#/analyses", "#/indicators", "#/investigations", "#/settings"]) {
+  for (const route of ["#/overview", "#/alerts", "#/email", "#/analyses", "#/indicators", "#/investigations", "#/settings"]) {
     await page.goto(`/app/${route}`);
     await expect(page.locator("[data-page-title]")).toBeVisible();
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -384,4 +384,53 @@ test("a newer version opened in another tab tells this tab to reload", async ({ 
   expect(upgraded).toBe(true);
   await expect(page.getByRole("alert")).toContainText("Reload this page");
   await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
+});
+
+test("reported email: read as text, findings and links shown, links queued; nothing is fetched or rendered", async ({ page }) => {
+  const w = watch(page);
+  const eml = [
+    "Authentication-Results: mx.corp.example; spf=fail smtp.mailfrom=evil.example; dkim=none; dmarc=fail header.from=paypal.com",
+    'From: "PayPal <service@paypal.com>" <alerts@evil.example>',
+    "Subject: Your account is limited",
+    "Message-ID: <e2e-1@evil.example>",
+    'Content-Type: multipart/mixed; boundary="m"',
+    "",
+    "--m",
+    "Content-Type: text/html; charset=utf-8",
+    "",
+    `<img src="https://${MARKER}/pixel.gif"><a href="https://paypal.com.${MARKER}/login">www.paypal.com</a><script>alert(1)</script>`,
+    "--m",
+    'Content-Disposition: attachment; filename="invoice.pdf.html"',
+    "Content-Type: text/html",
+    "",
+    "<form>fake</form>",
+    "--m--",
+  ].join("\r\n");
+  await page.goto("/app/#/email");
+  await expect(page.locator('input[name="email-file"]')).toBeEnabled(); // disabled until the engine has loaded
+  await page.locator('input[name="email-file"]').setInputFiles({ name: "reported.eml", mimeType: "message/rfc822", buffer: Buffer.from(eml) });
+  await expect(page.locator("#em-title")).toBeFocused();
+  await expect(page.locator("#em-title")).toHaveText("Your account is limited");
+  await expect(page.locator(".auth")).toContainText("DMARC fail");
+  for (const title of ["DMARC failed", "Display name shows another address", "Link text names a different site", "Attachment disguised by a double extension"]) {
+    await expect(page.locator(".ind-title", { hasText: title })).toBeVisible();
+  }
+  await expect(page.locator('[aria-labelledby="em-links"] tbody tr')).toHaveCount(1);
+  await expect(page.locator('[aria-labelledby="em-links"] tbody')).toContainText("High risk");
+  await page.getByRole("button", { name: "Queue 1 link as alerts" }).click();
+  await expect(page.getByRole("button", { name: "Queued as alerts" })).toBeDisabled();
+  await page.goto("/app/#/alerts");
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody")).toContainText("reported-email");
+  // The message's HTML was never rendered: no image request, no script run, no dialog.
+  expect(w.requests.filter((u) => u.includes(MARKER))).toEqual([]);
+  expect(w.errors).toEqual([]);
+});
+
+test("reported email: input that is not a message is rejected with a reason", async ({ page }) => {
+  await page.goto("/app/#/email");
+  await expect(page.locator('input[name="email-file"]')).toBeEnabled();
+  await page.getByLabel("Or paste the message source (headers and body)").fill("just some words");
+  await page.getByRole("button", { name: "Analyse message" }).click();
+  await expect(page.locator("#em-error")).toContainText("does not look like an email message");
 });
