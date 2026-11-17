@@ -173,12 +173,14 @@ function walk(headers, body, state, depth) {
     const pieces = body.split(/\r?\n/);
     let current = null;
     for (const line of pieces) {
-      if (line.startsWith(boundary)) {
+      // Only the exact delimiter line counts: a nested part's boundary may share this one as a prefix.
+      const t = line.trimEnd();
+      if (t === boundary || t === `${boundary}--`) {
         if (current) {
           const [h, b] = splitHeadersAndBody(current.join("\n"));
           walk(parseHeaderBlock(h), b, state, depth + 1);
         }
-        if (line.startsWith(`${boundary}--`)) {
+        if (t === `${boundary}--`) {
           current = null;
           break;
         }
@@ -325,7 +327,13 @@ function findingsFor(msg, psl) {
   const rp = registrable(msg.returnPath?.domain, psl);
   if (fromDomain && rp && rp !== fromDomain) add("return-path-mismatch", "low", "Bounce address on another domain", `Bounces go to ${rp}. Mailing services do this legitimately; with other signals it can indicate spoofing.`, msg.returnPath.address);
 
-  const mismatched = msg.links.filter((l) => l.textHost && l.host && l.textHost !== l.host && !l.host.endsWith(`.${l.textHost}`));
+  // Link text counts as naming a site only when its ending is a real public
+  // suffix ("Report.pdf" is a file name, not a host), and two names count as
+  // the same site when they share a registrable domain.
+  const site = (host) => (psl ? registrable(host, psl) : host);
+  const named = (host) => !psl || psl.isKnownSuffix(psl.split(host).publicSuffix);
+  const mismatched = msg.links.filter((l) => l.textHost && l.host && named(l.textHost) && site(l.textHost) !== site(l.host)
+    && !l.host.endsWith(`.${l.textHost}`));
   if (mismatched.length) {
     const l = mismatched[0];
     add("link-text-mismatch", "high", "Link text names a different site", `${mismatched.length === 1 ? "A link shows" : `${mismatched.length} links show`} one address but lead${mismatched.length === 1 ? "s" : ""} to another, for example text “${l.text}” leading to ${l.host}. Newsletters sometimes do this for click tracking; a sign-in or payment link that does it is a classic lure.`, l.text);

@@ -1,7 +1,7 @@
 # Deploying the platform (Cloudflare Pages)
 
 Status (verified 2026-11-17 from outside): `securemindlabs.com` is served by
-Cloudflare Pages from `main` (merge `293fa35`, PR #3); `www` and `http://`
+Cloudflare Pages from `main`; `www` and `http://`
 redirect to `https://securemindlabs.com/`. Email Address Obfuscation and Web
 Analytics are off for the zone and `npm run check:headers` passes. Every step
 below is an owner action.
@@ -113,7 +113,8 @@ Recommended, from the 2026-11 reconnaissance:
 
 - **A bad build:** Pages → Deployments → the last good deployment → Rollback.
 - **Across a schema change:** a build with a lower `DB_VERSION` cannot open a
-  workspace that a newer build has upgraded (version 2 added the alert queue).
+  workspace that a newer build has upgraded (version 2 added the alert queue,
+  version 3 the queue rules).
   The rolled-back app then shows "Temporary workspace" and keeps nothing; the
   data stays in the browser, untouched, and is readable again once a build
   with the newer schema is deployed. Prefer rolling forward with a fix.

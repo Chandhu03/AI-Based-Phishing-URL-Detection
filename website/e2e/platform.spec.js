@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DB_VERSION } from "../src/workspace/stores.js";
 
 const PAGES = ["/", "/research/", "/trust/", "/app/"];
 const MARKER = "marker-7f3a9c.example";
@@ -148,7 +149,7 @@ test("with data, workspace pages do not scroll sideways at 320px", async ({ page
   await page.goto("/app/#/overview");
   await page.getByRole("button", { name: "Load demo workspace" }).click();
   await expect(page.locator(".demo-flag").first()).toBeVisible();
-  for (const route of ["#/overview", "#/alerts", "#/email", "#/analyses", "#/indicators", "#/investigations", "#/settings"]) {
+  for (const route of ["#/overview", "#/alerts", "#/alerts/rules", "#/email", "#/analyses", "#/indicators", "#/investigations", "#/settings"]) {
     await page.goto(`/app/${route}`);
     await expect(page.locator("[data-page-title]")).toBeVisible();
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -367,7 +368,7 @@ test("a version 1 workspace upgrades in place and keeps its records", async ({ p
   expect(await page.evaluate(() => new Promise((ok) => {
     const open = indexedDB.open("securemind-workspace");
     open.onsuccess = () => { const v = open.result.version; open.result.close(); ok(v); };
-  }))).toBe(2);
+  }))).toBe(DB_VERSION);
 });
 
 test("an upgrade blocked by an older open tab says so, and continues once that tab closes", async ({ page, context }) => {
@@ -385,11 +386,11 @@ test("a newer version opened in another tab tells this tab to reload", async ({ 
   await expect(page.locator("[data-page-title]")).toHaveText("Overview");
   const other = await context.newPage();
   await other.goto("/trust/");
-  const upgraded = await other.evaluate(() => new Promise((ok, fail) => {
-    const open = indexedDB.open("securemind-workspace", 3);
+  const upgraded = await other.evaluate((next) => new Promise((ok, fail) => {
+    const open = indexedDB.open("securemind-workspace", next);
     open.onsuccess = () => { open.result.close(); ok(true); };
     open.onerror = () => fail(open.error);
-  }));
+  }), DB_VERSION + 1);
   expect(upgraded).toBe(true);
   await expect(page.getByRole("alert")).toContainText("Reload this page");
   await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
@@ -467,5 +468,67 @@ test("response checklist: apply a playbook, tick and add steps; it persists and 
   await expect(page.locator(".timeline")).toContainText("Credential phishing: 7 steps added");
   await page.goto("/app/#/investigations");
   await expect(page.locator("tbody tr").first()).toContainText("1/8");
+  expect(w.errors).toEqual([]);
+});
+
+test("a version 2 workspace (alert queue, no rules) upgrades and keeps its alerts", async ({ page }) => {
+  await page.goto("/trust/");
+  await page.evaluate(() => new Promise((resolve, reject) => {
+    const open = indexedDB.open("securemind-workspace", 2);
+    open.onupgradeneeded = () => {
+      for (const s of ["analyses", "investigations", "indicators", "activity", "alerts"]) open.result.createObjectStore(s, { keyPath: "id" });
+    };
+    open.onsuccess = () => {
+      const at = "2026-11-01T10:00:00.000Z";
+      const tx = open.result.transaction("alerts", "readwrite");
+      tx.objectStore("alerts").put({
+        id: "v2-alert", createdAt: at, updatedAt: at, lastSeen: at, occurrences: 3, url: "https://news.example.org/", host: "news.example.org",
+        registrableDomain: "example.org", verdict: "no-strong-indicators", analysisId: null, severity: "low", status: "new", disposition: null,
+        investigationId: null, triagedAt: null, closedAt: null, source: "user-report", externalId: "", reporter: "", history: [],
+      });
+      tx.oncomplete = () => { open.result.close(); resolve(); };
+      tx.onerror = () => reject(tx.error);
+    };
+  }));
+  await page.goto("/app/#/alerts");
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody")).toContainText("3×");
+  await page.goto("/app/#/alerts/rules");
+  await expect(page.getByText("No queue rules yet.")).toBeVisible();
+});
+
+test("queue rules: a close rule clears known-good links at intake but never a high-risk one", async ({ page }) => {
+  const w = watch(page);
+  await page.goto("/app/#/alerts/rules");
+  await page.getByLabel("Name").fill("Vendor docs");
+  await page.getByLabel("When").selectOption("domain");
+  await page.getByLabel("Value").fill("sharepoint.com");
+  await expect(page.getByRole("alert")).toContainText("Anyone can publish on sharepoint.com");
+  await expect(page.getByRole("button", { name: "Add rule" })).toBeDisabled();
+  await page.getByLabel("Value").fill("example.org");
+  await page.getByRole("button", { name: "Add rule" }).click();
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await page.getByLabel("Name").fill("Lure allow-list (should not close)");
+  await page.getByLabel("When").selectOption("host");
+  await page.getByLabel("Value").fill(`paypal.com.${MARKER}`);
+  await page.getByRole("button", { name: "Add rule" }).click();
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+
+  await page.getByRole("link", { name: "Back to the queue" }).click();
+  await page.getByRole("button", { name: "Add alerts" }).click();
+  await page.getByRole("dialog").getByLabel("Reported links, one per line").fill(`https://www.example.org/docs
+http://paypal.com.${MARKER}/login`);
+  await page.getByRole("dialog").getByRole("button", { name: "Queue alerts" }).click();
+  await expect(page.locator(".toast").last()).toHaveText("2 queued, 1 closed by queue rules.");
+  await expect(page.locator("#alert-status")).toHaveText("Showing 1–1 of 1");
+  await expect(page.locator("tbody")).toContainText("High risk");
+  await page.locator("tbody tr").first().getByRole("link").click();
+  await expect(page.locator("[data-page-title]")).toHaveText(/^Alert: /);
+  await expect(page.locator(".timeline")).toContainText("not closed, because the link was judged high risk");
+  await page.goto("/app/#/alerts");
+  await expect(page.locator(".kpis")).toContainText("Closed by rules1");
+  await page.goto("/app/#/alerts/rules");
+  await expect(page.locator("tbody tr").first()).toContainText("1×");
+  expect(w.requests.filter((u) => u.includes(MARKER))).toEqual([]);
   expect(w.errors).toEqual([]);
 });

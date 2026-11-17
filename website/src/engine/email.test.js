@@ -187,3 +187,34 @@ test("the email report defangs every address and link and escapes message text",
   const live = out.match(/[a-z0-9-]\.(?:com|example|html|zip)\b/gi);
   assert.equal(live, null, `no live host or file name anywhere: ${live}`);
 });
+
+test("link text: file names are not hosts, and one organisation's hosts match", () => {
+  const r = parseEmail([
+    "From: IT <it@corp.example>", "Subject: x", "Content-Type: text/html", "",
+    '<a href="https://files.corp-share.example/d/1">Report.pdf</a>',
+    '<a href="https://www.microsoft.com/security">support.microsoft.com</a>',
+    '<a href="https://login.evil.example/">www.microsoft.com</a>',
+  ].join("\r\n"), { psl });
+  const f = r.findings.filter((x) => x.id === "link-text-mismatch");
+  assert.equal(f.length, 1);
+  assert.match(f[0].detail, /^A link shows one address/, "only the evil.example link is counted");
+  assert.equal(f[0].evidence, "www.microsoft.com");
+});
+
+test("a nested boundary that starts with the outer one does not split the outer part", () => {
+  const r = parseEmail([
+    "Subject: x", 'Content-Type: multipart/mixed; boundary="b"', "",
+    "--b", 'Content-Type: multipart/alternative; boundary="b-inner"', "",
+    "--b-inner", "Content-Type: text/plain", "", "https://inner.example/", "--b-inner--",
+    "--b", 'Content-Disposition: attachment; filename="a.txt"', "Content-Type: text/plain", "", "x",
+    "--b--",
+  ].join("\r\n"));
+  assert.deepEqual(r.links.map((l) => l.url), ["https://inner.example/"]);
+  assert.deepEqual(r.attachments.map((a) => a.filename), ["a.txt"]);
+});
+
+test("the report names the server that added the authentication results", () => {
+  const email = parseEmail(LURE, { psl });
+  assert.equal(email.auth.server, "mx.corp.example");
+  assert.match(emailToMarkdown(email, []), /added by `mx\[\.\]corp\[\.\]example`/);
+});

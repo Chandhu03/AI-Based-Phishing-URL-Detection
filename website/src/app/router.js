@@ -5,6 +5,7 @@ import { useEffect, useState } from "preact/hooks";
 const ROUTES = [
   ["overview", /^\/overview$/],
   ["alerts", /^\/alerts$/],
+  ["rules", /^\/alerts\/rules$/],
   ["alert", /^\/alerts\/([\w-]+)$/],
   ["email", /^\/email$/],
   ["analyze", /^\/analyze$/],

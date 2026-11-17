@@ -19,6 +19,13 @@ export class PublicSuffixList {
     }
   }
 
+  /** True when this suffix is on the list (not only the default "*" rule). */
+  isKnownSuffix(suffix) {
+    if (this.exact.has(suffix)) return true;
+    const i = suffix.indexOf(".");
+    return i !== -1 && this.wildcard.has(suffix.slice(i + 1));
+  }
+
   // Split a valid ASCII (punycode), lowercase hostname without a trailing dot
   // (as dissect() produces) into its public suffix and its registrable domain
   // (eTLD+1), which is null when the host is itself a public suffix.
