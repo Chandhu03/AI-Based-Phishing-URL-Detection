@@ -10,7 +10,11 @@ export const INVESTIGATION_STATUSES = Object.freeze(["open", "investigating", "c
 export const PRIORITIES = Object.freeze(["low", "medium", "high", "critical"]);
 export const INDICATOR_TYPES = Object.freeze(["url", "domain", "hostname", "ipv4", "ipv6"]);
 export const CONFIDENCE = Object.freeze(["low", "medium", "high"]);
-export const LIMITS = Object.freeze({ title: 200, summary: 4000, note: 10000, tag: 40, tags: 20, value: 2048 });
+// Alert queue: "new" waits for an analyst, "triage" is being looked at,
+// "escalated" became (part of) an investigation, "closed" carries a disposition.
+export const ALERT_STATUSES = Object.freeze(["new", "triage", "escalated", "closed"]);
+export const DISPOSITIONS = Object.freeze(["true-positive", "benign", "false-positive", "duplicate"]);
+export const LIMITS = Object.freeze({ title: 200, summary: 4000, note: 10000, tag: 40, tags: 20, value: 2048, source: 60, externalId: 120, reporter: 200, comment: 1000 });
 
 export class WorkspaceError extends Error {}
 
@@ -117,6 +121,13 @@ const INTACT = {
     && CONFIDENCE.includes(r.confidence) && strs(r.tags) && strs(r.sources) && strs(r.analysisIds) && strs(r.investigationIds)
     && isStr(r.firstSeen) && isStr(r.lastSeen) && Number.isFinite(r.sightings) && isStr(r.stixId) && isStr(r.note ?? ""),
   activity: (r) => isStr(r.id) && isStr(r.at) && isStr(r.kind) && isStr(r.summary),
+  alerts: (r) => isStr(r.id) && isStr(r.createdAt) && isStr(r.updatedAt) && isStr(r.lastSeen) && Number.isInteger(r.occurrences) && r.occurrences > 0
+    && isStr(r.url) && isStr(r.host) && VERDICT_LEVELS.includes(r.verdict) && PRIORITIES.includes(r.severity) && ALERT_STATUSES.includes(r.status)
+    && isStr(r.source) && isStr(r.externalId) && isStr(r.reporter)
+    && (r.status === "closed" ? DISPOSITIONS.includes(r.disposition) && isStr(r.closedAt) : r.disposition === null)
+    && (r.status === "escalated" ? isStr(r.investigationId) : r.investigationId === null || isStr(r.investigationId))
+    && (r.analysisId === null || isStr(r.analysisId)) && (r.triagedAt === null || isStr(r.triagedAt))
+    && Array.isArray(r.history) && r.history.every((h) => isObj(h) && isStr(h.at) && isStr(h.action) && isStr(h.detail)),
 };
 /** True when a stored record has every field the workspace reads. */
 export const isIntact = (s, r) => isObj(r) && INTACT[s](r);
@@ -220,6 +231,12 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
         u.put(s, r);
       }
     }
+    // An alert keeps its link, host and verdict; only the full report goes.
+    for (const al of await u.list("alerts")) {
+      if (al.analysisId !== id) continue;
+      al.analysisId = null;
+      u.put("alerts", al);
+    }
   }
   async function stageDeleteInvestigation(u, id) {
     u.del("investigations", id);
@@ -228,6 +245,93 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       ind.investigationIds = ind.investigationIds.filter((x) => x !== id);
       u.put("indicators", ind);
     }
+    // An escalated alert whose case is gone goes back to triage, not into limbo.
+    for (const al of await u.list("alerts")) {
+      if (al.investigationId !== id) continue;
+      const at = ts();
+      al.investigationId = null;
+      if (al.status === "escalated") {
+        al.status = "triage";
+        al.history.push({ at, action: "unlinked", detail: "Its investigation was deleted; back in triage" });
+      }
+      al.updatedAt = at;
+      u.put("alerts", al);
+    }
+  }
+  function stageInvestigation(u, { title, summary = "", priority = "medium", tags = [], demo = false }) {
+    const t = clean(title, LIMITS.title);
+    if (!t) throw new WorkspaceError("an investigation needs a title");
+    if (!PRIORITIES.includes(priority)) throw new WorkspaceError("unknown priority");
+    const at = ts();
+    const record = u.put("investigations", {
+      id: newId(), title: t, summary: clean(summary, LIMITS.summary), status: "open", priority, tags: normalizeTags(tags),
+      notes: [], analysisIds: [], indicatorIds: [], demo, createdAt: at, updatedAt: at,
+      history: [{ at, action: "created", detail: `Opened with ${priority} priority` }],
+    });
+    u.log("investigation.created", { type: "investigation", id: record.id }, `Opened “${t}”`);
+    return record;
+  }
+  async function stageLinkAnalysis(u, id, analysisId) {
+    const inv = await u.must("investigations", id);
+    const analysis = await u.must("analyses", analysisId);
+    if (inv.analysisIds.includes(analysisId)) return inv;
+    inv.analysisIds.push(analysisId);
+    inv.history.push({ at: ts(), action: "linked", detail: `Analysis of ${defang(analysis.host)}` });
+    // Indicators already recorded from this analysis join the case too.
+    for (const ind of await u.list("indicators")) {
+      if (!ind.analysisIds.includes(analysisId) || inv.indicatorIds.includes(ind.id)) continue;
+      inv.indicatorIds.push(ind.id);
+      if (!ind.investigationIds.includes(id)) ind.investigationIds.push(id);
+      u.put("indicators", ind);
+    }
+    inv.updatedAt = ts();
+    return u.put("investigations", inv);
+  }
+  /**
+   * Queue one analysed link as an alert. A link that already has an alert
+   * still in the queue (not closed) is counted on that alert instead: one
+   * phishing wave reported by fifty people is one alert seen fifty times.
+   */
+  async function stageAlert(u, { report, source = "manual", externalId = "", reporter = "", demo = false }) {
+    if (!report?.ok) throw new WorkspaceError("only analysed links can be queued");
+    const src = clean(source, Infinity);
+    const ext = clean(externalId, Infinity);
+    const who = clean(reporter, Infinity);
+    // Reject, never truncate: a cut reference or reporter would point at the wrong thing.
+    if (src.length > LIMITS.source || ext.length > LIMITS.externalId || who.length > LIMITS.reporter) throw new WorkspaceError("an alert field is too long");
+    const at = ts();
+    const from = [src || "manual", ext && `ref ${ext}`, who && `reported by ${who}`].filter(Boolean).join(", ");
+    const open = (await u.list("alerts")).find((a) => a.url === report.url && a.status !== "closed");
+    if (open) {
+      open.occurrences += 1;
+      open.lastSeen = at;
+      open.updatedAt = at;
+      open.demo = open.demo && demo;
+      open.history.push({ at, action: "repeat", detail: `Seen again (${from})` });
+      u.put("alerts", open);
+      return { alert: open, merged: true };
+    }
+    const analysis = stageAnalysis(u, report, demo);
+    const alert = u.put("alerts", {
+      id: newId(), createdAt: at, updatedAt: at, lastSeen: at, occurrences: 1, demo,
+      url: report.url, host: report.facts.host, registrableDomain: report.facts.registrableDomain, verdict: report.verdict.level,
+      analysisId: analysis.id, severity: VERDICT_SEVERITY[report.verdict.level], status: "new", disposition: null,
+      investigationId: null, triagedAt: null, closedAt: null, source: src || "manual", externalId: ext, reporter: who,
+      history: [{ at, action: "created", detail: `Queued from ${from}` }],
+    });
+    return { alert, merged: false };
+  }
+  /** Read alerts and run fn on each that exists; missing ids are an error, so a bulk action never half-applies. */
+  async function eachAlert(u, ids, fn) {
+    const at = ts();
+    const out = [];
+    for (const id of new Set(ids)) {
+      const al = await u.must("alerts", id);
+      if (fn(al, at) === false) continue;
+      al.updatedAt = at;
+      out.push(u.put("alerts", al));
+    }
+    return out;
   }
   async function stageDeleteIndicator(u, id) {
     u.del("indicators", id);
@@ -290,11 +394,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
         .filter((a) => (!verdict || a.verdict === verdict) && (demo === undefined || !!a.demo === demo)
           && (!q || a.url.toLowerCase().includes(q) || a.host.toLowerCase().includes(q)))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      if (limit === undefined) return all;
-      // Past the end (for example after deleting the last page): show the last page.
-      const last = Math.max(0, Math.floor((all.length - 1) / limit) * limit);
-      const start = Math.min(Math.max(0, offset), last);
-      return { items: all.slice(start, start + limit), total: all.length, offset: start };
+      return limit === undefined ? all : pageOf(all, offset, limit);
     },
     getAnalysis: (id) => must("analyses", id),
     deleteAnalysis: (id) => atomic((u) => stageDeleteAnalysis(u, id)),
@@ -307,22 +407,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
     }),
 
     // ------------------------------------------------------------ investigations
-    createInvestigation({ title, summary = "", priority = "medium", tags = [], demo = false }) {
-      const t = clean(title, LIMITS.title);
-      if (!t) return Promise.reject(new WorkspaceError("an investigation needs a title"));
-      if (!PRIORITIES.includes(priority)) return Promise.reject(new WorkspaceError("unknown priority"));
-      const at = ts();
-      const record = {
-        id: newId(), title: t, summary: clean(summary, LIMITS.summary), status: "open", priority, tags: normalizeTags(tags),
-        notes: [], analysisIds: [], indicatorIds: [], demo, createdAt: at, updatedAt: at,
-        history: [{ at, action: "created", detail: `Opened with ${priority} priority` }],
-      };
-      return atomic((u) => {
-        u.put("investigations", record);
-        u.log("investigation.created", { type: "investigation", id: record.id }, `Opened “${t}”`);
-        return record;
-      });
-    },
+    createInvestigation: (input) => atomic((u) => stageInvestigation(u, input)),
     updateInvestigation(id, patch) {
       // Validate the whole patch first, so a rejected change writes nothing.
       if (patch.status !== undefined && !INVESTIGATION_STATUSES.includes(patch.status)) return Promise.reject(new WorkspaceError("unknown status"));
@@ -377,22 +462,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       inv.history.push({ at: ts(), action: "note-removed", detail: "A note was removed" });
       return u.put("investigations", inv);
     }),
-    linkAnalysis: (id, analysisId) => atomic(async (u) => {
-      const inv = await u.must("investigations", id);
-      const analysis = await u.must("analyses", analysisId);
-      if (inv.analysisIds.includes(analysisId)) return inv;
-      inv.analysisIds.push(analysisId);
-      inv.history.push({ at: ts(), action: "linked", detail: `Analysis of ${defang(analysis.host)}` });
-      // Indicators already recorded from this analysis join the case too.
-      for (const ind of await u.list("indicators")) {
-        if (!ind.analysisIds.includes(analysisId) || inv.indicatorIds.includes(ind.id)) continue;
-        inv.indicatorIds.push(ind.id);
-        if (!ind.investigationIds.includes(id)) ind.investigationIds.push(id);
-        u.put("indicators", ind);
-      }
-      inv.updatedAt = ts();
-      return u.put("investigations", inv);
-    }),
+    linkAnalysis: (id, analysisId) => atomic((u) => stageLinkAnalysis(u, id, analysisId)),
     unlinkAnalysis: (id, analysisId) => atomic(async (u) => {
       const inv = await u.must("investigations", id);
       if (!inv.analysisIds.includes(analysisId)) return inv;
@@ -444,13 +514,140 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
         || key(o)?.endsWith(`.${mine}`) || mine.endsWith(`.${key(o)}`)));
     },
 
+    // ------------------------------------------------------------ alert queue
+    /**
+     * Queue analysed links as alerts in one transaction: one bad item queues nothing.
+     * @param {Array<{report, source?, externalId?, reporter?}>} items
+     */
+    queueAlerts: (items, { demo = false } = {}) => atomic(async (u) => {
+      const results = [];
+      for (const it of items) results.push(await stageAlert(u, { ...it, demo }));
+      const created = results.filter((r) => !r.merged).map((r) => r.alert);
+      const merged = results.length - created.length;
+      if (results.length) u.log("alert.queued", null, `Queued ${created.length} alert${created.length === 1 ? "" : "s"}${merged ? `; ${merged} seen again` : ""}`);
+      return { created, merged };
+    }),
+    /** Move new alerts into triage; alerts past "new" are left as they are. */
+    triageAlerts: (ids) => atomic((u) => eachAlert(u, ids, (al, at) => {
+      if (al.status !== "new") return false;
+      al.status = "triage";
+      al.triagedAt = at;
+      al.history.push({ at, action: "triage", detail: "Triage started" });
+    })),
+    setAlertSeverity(id, severity) {
+      if (!PRIORITIES.includes(severity)) return Promise.reject(new WorkspaceError("unknown severity"));
+      return atomic(async (u) => (await eachAlert(u, [id], (al, at) => {
+        if (al.severity === severity) return false;
+        al.history.push({ at, action: "severity", detail: `${al.severity} → ${severity}` });
+        al.severity = severity;
+      }))[0] ?? u.must("alerts", id));
+    },
+    /** Close alerts with a disposition; already-closed alerts keep theirs. */
+    closeAlerts(ids, { disposition, comment = "" }) {
+      if (!DISPOSITIONS.includes(disposition)) return Promise.reject(new WorkspaceError("choose a disposition"));
+      const why = clean(comment, Infinity);
+      if (why.length > LIMITS.comment) return Promise.reject(new WorkspaceError("the comment is too long"));
+      return atomic(async (u) => {
+        const closed = await eachAlert(u, ids, (al, at) => {
+          if (al.status === "closed") return false;
+          al.status = "closed";
+          al.disposition = disposition;
+          al.closedAt = at;
+          al.triagedAt ??= at;
+          al.history.push({ at, action: "closed", detail: why ? `${disposition}: ${why}` : disposition });
+        });
+        if (closed.length) u.log("alert.closed", null, `Closed ${closed.length} alert${closed.length === 1 ? "" : "s"} as ${disposition}`);
+        return closed;
+      });
+    },
+    reopenAlert: (id) => atomic(async (u) => (await eachAlert(u, [id], (al, at) => {
+      if (al.status !== "closed") return false;
+      al.history.push({ at, action: "reopened", detail: `Reopened (was ${al.disposition})` });
+      al.status = al.investigationId ? "escalated" : "triage";
+      al.disposition = null;
+      al.closedAt = null;
+    }))[0] ?? u.must("alerts", id)),
+    /**
+     * Escalate an alert to an existing investigation, or to a new one opened
+     * with the alert's severity. Its analysis joins the case.
+     */
+    escalateAlert: (id, { investigationId = null, title = "" } = {}) => atomic(async (u) => {
+      const al = await u.must("alerts", id);
+      if (al.status === "closed") throw new WorkspaceError("reopen the alert before escalating it");
+      if (al.status === "escalated" && investigationId && al.investigationId === investigationId) {
+        return { alert: al, investigation: await u.must("investigations", investigationId) }; // already there: no duplicate history
+      }
+      const inv = investigationId
+        ? await u.must("investigations", investigationId)
+        : stageInvestigation(u, {
+          title: clean(title, LIMITS.title) || `Alert: ${defang(al.host)}`,
+          summary: `Escalated from the alert queue (${al.source}${al.externalId ? `, ref ${al.externalId}` : ""}).`,
+          priority: al.severity, tags: ["alert"], demo: al.demo,
+        });
+      if (al.analysisId && await u.get("analyses", al.analysisId)) await stageLinkAnalysis(u, inv.id, al.analysisId);
+      const at = ts();
+      inv.history.push({ at, action: "alert", detail: `Escalated alert for ${defang(al.host)}` });
+      inv.updatedAt = at;
+      u.put("investigations", inv);
+      al.status = "escalated";
+      al.investigationId = inv.id;
+      al.triagedAt ??= at;
+      al.updatedAt = at;
+      al.history.push({ at, action: "escalated", detail: `To “${inv.title}”` });
+      u.put("alerts", al);
+      u.log("alert.escalated", { type: "investigation", id: inv.id }, `Escalated ${defang(al.host)} to “${inv.title}”`);
+      return { alert: al, investigation: inv };
+    }),
+    /** Delete alerts only: their analyses and investigations stay. */
+    deleteAlerts: (ids) => atomic(async (u) => {
+      const unique = [...new Set(ids)];
+      for (const id of unique) u.del("alerts", id);
+      u.log("alert.deleted", null, `Deleted ${unique.length} alert${unique.length === 1 ? "" : "s"}`);
+      return unique.length;
+    }),
+    /**
+     * The queue: status first (new, triage, escalated, closed), then most
+     * severe, then oldest. `status: "open"` means new or in triage.
+     */
+    async listAlerts({ status, severity, query, offset = 0, limit } = {}) {
+      const q = query?.trim().toLowerCase();
+      const all = (await intactList("alerts"))
+        .filter((a) => (!status || (status === "open" ? ALERT_OPEN.has(a.status) : a.status === status)) && (!severity || a.severity === severity)
+          && (!q || [a.url, a.host, a.source, a.externalId, a.reporter].some((x) => x.toLowerCase().includes(q))))
+        .sort((a, b) => ALERT_STATUSES.indexOf(a.status) - ALERT_STATUSES.indexOf(b.status)
+          || PRIORITIES.indexOf(b.severity) - PRIORITIES.indexOf(a.severity) || a.createdAt.localeCompare(b.createdAt));
+      return limit === undefined ? all : pageOf(all, offset, limit);
+    },
+    getAlert: (id) => must("alerts", id),
+    /** Queue health for the last `days`: backlog, dispositions, and median times to triage and to close (ms). */
+    async alertMetrics({ days = 30 } = {}) {
+      const since = new Date(now().getTime() - days * 864e5).toISOString();
+      const alerts = await intactList("alerts");
+      const open = alerts.filter((a) => ALERT_OPEN.has(a.status));
+      const closed = alerts.filter((a) => a.status === "closed" && a.closedAt >= since);
+      const span = (from, to) => Date.parse(to) - Date.parse(from);
+      return {
+        days,
+        total: alerts.length,
+        byStatus: Object.fromEntries(ALERT_STATUSES.map((s) => [s, alerts.filter((a) => a.status === s).length])),
+        open: open.length,
+        openBySeverity: Object.fromEntries(PRIORITIES.map((p) => [p, open.filter((a) => a.severity === p).length])),
+        oldestOpen: open.reduce((min, a) => (!min || a.createdAt < min ? a.createdAt : min), null),
+        closedRecent: closed.length,
+        byDisposition: Object.fromEntries(DISPOSITIONS.map((d) => [d, closed.filter((a) => a.disposition === d).length])),
+        falsePositiveRate: closed.length ? closed.filter((a) => a.disposition === "false-positive").length / closed.length : null,
+        timeToTriage: median(alerts.filter((a) => a.triagedAt && a.triagedAt >= since).map((a) => span(a.createdAt, a.triagedAt))),
+        timeToClose: median(closed.map((a) => span(a.createdAt, a.closedAt))),
+      };
+    },
+
     // ------------------------------------------------------------ overview
     async activity(limit = 20) {
       return (await intactList("activity")).sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
     },
     async overview({ days = 30 } = {}) {
       const since = new Date(now().getTime() - days * 864e5).toISOString();
-      const [analyses, investigations, indicators] = await Promise.all(STORES_FOR_OVERVIEW.map(intactList));
+      const [analyses, investigations, indicators, alerts] = await Promise.all(STORES_FOR_OVERVIEW.map(intactList));
       const recent = analyses.filter((a) => a.createdAt >= since);
       const byVerdict = Object.fromEntries(VERDICT_LEVELS.map((v) => [v, recent.filter((a) => a.verdict === v).length]));
       const perDay = [];
@@ -462,7 +659,9 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       for (const i of analyses.flatMap((a) => a.report.indicators)) if (i.severity !== "info") indicatorCounts[i.id] = (indicatorCounts[i.id] || 0) + 1;
       return {
         days,
-        totals: { analyses: analyses.length, investigations: investigations.length, indicators: indicators.length },
+        totals: { analyses: analyses.length, investigations: investigations.length, indicators: indicators.length, alerts: alerts.length },
+        openAlerts: alerts.filter((a) => ALERT_OPEN.has(a.status))
+          .sort((a, b) => PRIORITIES.indexOf(b.severity) - PRIORITIES.indexOf(a.severity) || a.createdAt.localeCompare(b.createdAt)),
         recentAnalyses: recent.length,
         byVerdict,
         perDay,
@@ -470,7 +669,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
           .sort((a, b) => PRIORITIES.indexOf(b.priority) - PRIORITIES.indexOf(a.priority) || b.updatedAt.localeCompare(a.updatedAt)),
         indicatorsByType: Object.fromEntries(INDICATOR_TYPES.map((t) => [t, indicators.filter((i) => i.type === t).length])),
         topFindings: Object.entries(indicatorCounts).sort((a, b) => b[1] - a[1]).slice(0, 6),
-        hasDemo: [...analyses, ...investigations, ...indicators].some((r) => r.demo),
+        hasDemo: [...analyses, ...investigations, ...indicators, ...alerts].some((r) => r.demo),
         recent: [...analyses].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8),
       };
     },
@@ -499,6 +698,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
     removeDemoData: () => atomic(async (u) => {
       // Through the same staging as the delete methods, so links from the
       // analyst's own records to demo records are cleaned up too.
+      for (const r of await u.list("alerts")) if (r.demo) u.del("alerts", r.id);
       for (const r of await u.list("analyses")) if (r.demo) await stageDeleteAnalysis(u, r.id);
       for (const r of await u.list("investigations")) if (r.demo) await stageDeleteInvestigation(u, r.id);
       for (const r of await u.list("indicators")) if (r.demo) await stageDeleteIndicator(u, r.id);
@@ -524,11 +724,27 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
   return ws;
 }
 
+/** One page of a sorted list: { items, total, offset }. Past the end (after deleting the last page), the last page. */
+function pageOf(all, offset, limit) {
+  const last = Math.max(0, Math.floor((all.length - 1) / limit) * limit);
+  const start = Math.min(Math.max(0, offset), last);
+  return { items: all.slice(start, start + limit), total: all.length, offset: start };
+}
+
+const median = (xs) => {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+const ALERT_OPEN = new Set(["new", "triage"]);
+
 const STIX_INDICATOR_ID = /^indicator--[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const STORES_FOR_OVERVIEW = ["analyses", "investigations", "indicators"];
+const STORES_FOR_OVERVIEW = ["analyses", "investigations", "indicators", "alerts"];
 const MUTATIONS = ["saveAnalysis", "saveAnalyses", "deleteAnalysis", "deleteAnalyses", "createInvestigation", "updateInvestigation",
   "addNote", "deleteNote", "linkAnalysis", "unlinkAnalysis", "deleteInvestigation", "upsertIndicator", "upsertIndicators",
-  "updateIndicator", "deleteIndicator", "removeDamaged", "removeDemoData", "clearAll", "exclusive"];
+  "updateIndicator", "deleteIndicator", "queueAlerts", "triageAlerts", "setAlertSeverity", "closeAlerts", "reopenAlert",
+  "escalateAlert", "deleteAlerts", "removeDamaged", "removeDemoData", "clearAll", "exclusive"];
 
 function hostOf(url) {
   try {

@@ -15,11 +15,11 @@ const DEMO_URLS = Object.freeze([
 ]);
 
 export async function loadDemoWorkspace(ws, analyze) {
-  const saved = [];
-  for (const url of DEMO_URLS) {
-    const report = analyze(url);
-    if (report.ok) saved.push(await ws.saveAnalysis(report, { demo: true }));
-  }
+  // Every example link arrives as a user report in the alert queue, which
+  // also saves its analysis.
+  const reports = DEMO_URLS.map((url) => analyze(url)).filter((r) => r.ok);
+  const { created: alerts } = await ws.queueAlerts(reports.map((report, i) => ({ report, source: "user-report", reporter: `demo-user-${i + 1}@example.com` })), { demo: true });
+  const saved = await Promise.all(alerts.map((a) => ws.getAnalysis(a.analysisId)));
   const inv = await ws.createInvestigation({
     title: "Demo: payroll credential lure",
     summary: "Demonstration case built from example links. Shows linking analyses, recording indicators and keeping notes.",
@@ -34,5 +34,10 @@ export async function loadDemoWorkspace(ws, analyze) {
   }
   await ws.addNote(inv.id, "Example note: the brand appears only in the subdomain; the registrable domain is unrelated.");
   await ws.updateInvestigation(inv.id, { status: "investigating" });
-  return { analyses: saved.length, investigationId: inv.id };
+  // Queue states to show: one alert escalated to the case, one closed as benign, the rest waiting.
+  const lure = alerts.find((a) => a.verdict === "high-risk");
+  if (lure) await ws.escalateAlert(lure.id, { investigationId: inv.id });
+  const ordinary = alerts.find((a) => a.verdict === "no-strong-indicators");
+  if (ordinary) await ws.closeAlerts([ordinary.id], { disposition: "benign", comment: "Vendor documentation link." });
+  return { analyses: saved.length, alerts: alerts.length, investigationId: inv.id };
 }

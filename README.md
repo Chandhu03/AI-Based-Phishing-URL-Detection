@@ -2,9 +2,11 @@
 
 A local-first platform for investigating phishing links. Paste a link and
 SecureMind shows who it really leads to, which deception techniques it uses
-and how a hostname model rates it, then lets you keep investigations and
-indicators together. Analysis and storage run entirely in the browser; a
-submitted link is never fetched or sent.
+and how a hostname model rates it, then lets you triage reported links in an
+alert queue and keep investigations and indicators together. Analysis and
+storage run entirely in the browser; a submitted link is never fetched or
+sent. Where the platform is heading, and which decisions gate each step:
+[`ROADMAP.md`](ROADMAP.md).
 
 **Quick start (platform):**
 

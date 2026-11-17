@@ -4,9 +4,11 @@
 // IndexedDB keeps the workspace in this browser profile only. Nothing here
 // talks to a server.
 
-export const STORES = Object.freeze(["analyses", "investigations", "indicators", "activity"]);
+export const STORES = Object.freeze(["analyses", "investigations", "indicators", "activity", "alerts"]);
 const DB_NAME = "securemind-workspace";
-const DB_VERSION = 1;
+// 2 adds the alerts store. Older builds cannot open a version 2 database
+// (see DEPLOYMENT.md, rollback).
+export const DB_VERSION = 2;
 
 const clone = (value) => (value === undefined ? undefined : structuredClone(value));
 
@@ -46,15 +48,25 @@ function promisify(request) {
   });
 }
 
-/** IndexedDB adapter. Rejects if IndexedDB is unavailable (e.g. some private modes). */
-export async function createIdbStore(idb = globalThis.indexedDB) {
+/**
+ * IndexedDB adapter. Rejects if IndexedDB is unavailable (e.g. some private modes).
+ * `onBlocked` runs while another tab holds an older version open (the upgrade
+ * waits for it to close); `onVersionChange` runs after this tab closed its
+ * connection so a newer tab can upgrade.
+ */
+export async function createIdbStore({ idb = globalThis.indexedDB, onBlocked = () => {}, onVersionChange = () => {} } = {}) {
   if (!idb) throw new Error("IndexedDB is not available");
   const open = idb.open(DB_NAME, DB_VERSION);
   open.onupgradeneeded = () => {
     const db = open.result;
     for (const s of STORES) if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: "id" });
   };
+  open.onblocked = () => onBlocked();
   const db = await promisify(open);
+  db.onversionchange = () => {
+    db.close();
+    onVersionChange();
+  };
   const run = (s, mode, fn) => {
     const tx = db.transaction(s, mode);
     const result = promisify(fn(tx.objectStore(s)));

@@ -9,7 +9,7 @@ and reporting all run in the visitor's browser.
 | `/` | Public homepage with a live, local analysis of one link |
 | `/research/` | How the detection model was trained and evaluated (figures generated at build time) |
 | `/trust/` | Privacy and security: data flow, enforced controls, threat model, disclosure |
-| `/app/` | The analyst workspace: Overview, Analyse (one or many links), Investigations, Indicators, Detection engine, Settings |
+| `/app/` | The analyst workspace: Overview, Alert queue, Analyse (one or many links), Analyses, Investigations, Indicators, Detection engine, Settings |
 
 ## Capabilities
 
@@ -20,6 +20,16 @@ and reporting all run in the visitor's browser.
   downloadable files and more); a hostname model; a qualified verdict:
   *High risk*, *Suspicious*, *Inconclusive* or *No strong indicators observed*.
   Never "safe".
+- **Alert queue.** Reported links arrive by paste or file (text, CSV with a
+  `url` column and optional `source`, `external_id`, `reporter`, or JSON; up
+  to 500 per import; invalid rows are skipped and counted, the rest are queued
+  together). Each is analysed locally and queued with
+  a severity from its verdict; a link already open in the queue counts as a
+  repeat instead of a new alert. Alerts move new → in triage → closed (true
+  positive, benign, false positive or duplicate) or escalated to a new or
+  existing investigation, which receives the analysis. Bulk triage and close,
+  a full history per alert, and queue health for the last 30 days: backlog,
+  oldest open alert, median time to triage and to close, false-positive rate.
 - **Analyses.** Every saved analysis with search (link or host), a verdict
   filter, pages of 25 and bulk deletion that also removes links to it.
 - **Investigations.** Status, priority, tags, notes, linked analyses and

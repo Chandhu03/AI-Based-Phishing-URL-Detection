@@ -4,6 +4,8 @@ import { useEffect, useState } from "preact/hooks";
 // analysed URLs in the address bar: only record ids appear in routes.
 const ROUTES = [
   ["overview", /^\/overview$/],
+  ["alerts", /^\/alerts$/],
+  ["alert", /^\/alerts\/([\w-]+)$/],
   ["analyze", /^\/analyze$/],
   ["analyses", /^\/analyses$/],
   ["analysis", /^\/analyses\/([\w-]+)$/],

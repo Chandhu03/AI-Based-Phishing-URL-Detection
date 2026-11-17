@@ -1,9 +1,10 @@
 # Deploying the platform (Cloudflare Pages)
 
-Status (verified 2026-11-12 from outside): `securemindlabs.com` is served by
-Cloudflare Pages from the `main` branch; `www` and `http://` redirect to
-`https://securemindlabs.com/`. The work on `security-and-ui-modernization`
-is **not deployed**. Every step below is an owner action.
+Status (verified 2026-11-17 from outside): `securemindlabs.com` is served by
+Cloudflare Pages from `main` (merge `293fa35`, PR #3); `www` and `http://`
+redirect to `https://securemindlabs.com/`. Email Address Obfuscation and Web
+Analytics are off for the zone and `npm run check:headers` passes. Every step
+below is an owner action.
 
 ## 1. Pages project settings
 
@@ -68,6 +69,9 @@ From `website/`:
    - **Workspace:** analyse a link, save it, add it to an investigation, add
      a note, record indicators, reload: everything is still there. Settings
      → Delete all workspace data empties it.
+   - **Alert queue:** add two reported links (one twice), start triage, close
+     one with a disposition, escalate the other: the investigation holds its
+     analysis and the overview shows no open alerts.
    - **Keyboard:** Tab from the top: the skip link comes first and every
      control shows a focus ring.
 3. At 375 px wide: no sideways scrolling; the menus open and close.
@@ -100,11 +104,19 @@ Recommended, from the 2026-11 reconnaissance:
    green (Python tests and audits, Phase 3 tests, website unit tests, build,
    end-to-end tests, npm audit).
 2. Pages builds `main`. Run the §3 checklist on the production URL.
-3. Existing visitors' workspaces are unaffected: they live in each browser.
+3. Existing visitors' workspaces live in each browser. A release that
+   raises the workspace schema (`DB_VERSION` in `src/workspace/stores.js`)
+   upgrades them in place on the next visit; a tab of the previous build that
+   is still open delays the upgrade, and the new tab says so until it closes.
 
 ## 6. Rollback
 
 - **A bad build:** Pages → Deployments → the last good deployment → Rollback.
+- **Across a schema change:** a build with a lower `DB_VERSION` cannot open a
+  workspace that a newer build has upgraded (version 2 added the alert queue).
+  The rolled-back app then shows "Temporary workspace" and keeps nothing; the
+  data stays in the browser, untouched, and is readable again once a build
+  with the newer schema is deployed. Prefer rolling forward with a fix.
 - **A domain problem:** Pages → Custom domains → remove the domain (this
   removes only the record Pages added); restore anything else from the zone export.
 - **Mail problems:** compare the zone with the export and restore the mail

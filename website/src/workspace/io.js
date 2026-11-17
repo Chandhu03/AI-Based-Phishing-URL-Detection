@@ -5,7 +5,7 @@
 import { defang, refang } from "../engine/defang.js";
 import { LIMITS as VERDICT_LIMITS } from "../engine/verdict.js";
 import { STORES } from "./stores.js";
-import { classifyIndicator, CONFIDENCE, INDICATOR_TYPES, INVESTIGATION_STATUSES, isIntact, MAX_IMPORT_BYTES, normalizeIndicator, normalizeTags, PRIORITIES } from "./workspace.js";
+import { ALERT_STATUSES, classifyIndicator, CONFIDENCE, DISPOSITIONS, INDICATOR_TYPES, INVESTIGATION_STATUSES, isIntact, LIMITS, MAX_IMPORT_BYTES, normalizeIndicator, normalizeTags, PRIORITIES } from "./workspace.js";
 
 // Loaded on demand by the UI (import, export and reports only).
 export { classifyIndicator, MAX_IMPORT_BYTES };
@@ -91,8 +91,36 @@ const REBUILD = {
       firstSeen, lastSeen, sightings, demo: r.demo === true,
     };
   },
+  /** The link is re-analysed, so a backup cannot set an alert's verdict or host. Links to other records are checked on import. */
+  alerts(r, analyze) {
+    const createdAt = iso(r.createdAt);
+    if (!ID.test(r.id) || !createdAt || typeof r.url !== "string" || !ALERT_STATUSES.includes(r.status) || !PRIORITIES.includes(r.severity)) return null;
+    const report = analyze(r.url, createdAt);
+    if (!report?.ok || report.url !== r.url) return null;
+    const closed = r.status === "closed";
+    const closedAt = closed ? iso(r.closedAt) : null;
+    if (closed && (!DISPOSITIONS.includes(r.disposition) || !closedAt)) return null;
+    // Over-long fields reject the record; they are never cut.
+    const field = (v, max) => (typeof v === "string" && v.length <= max ? str(v, max).trim() : null);
+    const [source, externalId, reporter] = [field(r.source, LIMITS.source), field(r.externalId ?? "", LIMITS.externalId), field(r.reporter ?? "", LIMITS.reporter)];
+    if (!source || externalId === null || reporter === null) return null;
+    return {
+      id: r.id, createdAt, updatedAt: iso(r.updatedAt) ?? createdAt, lastSeen: iso(r.lastSeen) ?? createdAt,
+      occurrences: Number.isInteger(r.occurrences) && r.occurrences > 0 ? Math.min(r.occurrences, 1e6) : 1, demo: r.demo === true,
+      url: report.url, host: report.facts.host, registrableDomain: report.facts.registrableDomain, verdict: report.verdict.level,
+      analysisId: ID.test(r.analysisId) ? r.analysisId : null, severity: r.severity, status: r.status,
+      disposition: closed ? r.disposition : null, investigationId: ID.test(r.investigationId) ? r.investigationId : null,
+      triagedAt: iso(r.triagedAt), closedAt, source, externalId, reporter,
+      history: (Array.isArray(r.history) ? r.history : []).slice(0, 5000)
+        .map((h) => ({ at: iso(h?.at), action: str(h?.action, 40), detail: str(h?.detail, ALERT_HISTORY_DETAIL) }))
+        .filter((h) => h.at && ALERT_HISTORY_ACTIONS.has(h.action)),
+    };
+  },
 };
-const HISTORY_ACTIONS = new Set(["created", "renamed", "summary", "status", "priority", "tags", "note", "note-removed", "linked", "unlinked", "indicator"]);
+const HISTORY_ACTIONS = new Set(["created", "renamed", "summary", "status", "priority", "tags", "note", "note-removed", "linked", "unlinked", "indicator", "alert"]);
+const ALERT_HISTORY_ACTIONS = new Set(["created", "repeat", "triage", "severity", "closed", "reopened", "escalated", "unlinked"]);
+// The longest detail written: a close with a 1,000-character comment.
+const ALERT_HISTORY_DETAIL = 1100;
 
 /**
  * Parse and validate a backup. `analyze(url, isoDate)` re-runs the engine on
@@ -110,14 +138,14 @@ export function parseBackup(text, analyze) {
 /**
  * The same as parseBackup, but yields to the page between chunks of
  * re-analysis and reports progress, so a large restore never freezes the tab.
- * @param {(done: number, total: number) => void} [onProgress]
+ * @param {(done: number, total: number, store: string) => void} [onProgress]
  */
 export async function parseBackupInChunks(text, analyze, onProgress = () => {}) {
   const steps = parseSteps(text, analyze);
   for (;;) {
     const { done, value } = steps.next();
     if (done) return value;
-    onProgress(value.done, value.total);
+    onProgress(value.done, value.total, value.store);
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 }
@@ -158,7 +186,8 @@ function* parseSteps(text, analyze) {
       const rebuilt = r && typeof r === "object" ? REBUILD[s](r, analyze) : null;
       if (rebuilt) records[s].push(rebuilt);
       else rejected++;
-      if (s === "analyses" && (i + 1) % CHUNK === 0 && i + 1 < list.length) yield { done: i + 1, total: list.length };
+      // Analyses and alerts are re-analysed: yield between chunks of either.
+      if ((s === "analyses" || s === "alerts") && (i + 1) % CHUNK === 0 && i + 1 < list.length) yield { store: s, done: i + 1, total: list.length };
     }
   }
   return { records, rejected };
@@ -217,6 +246,12 @@ export async function importBackup(store, parsed, now = new Date()) {
     ind.analysisIds = keep(ind.analysisIds, "analyses");
     ind.investigationIds = keep(ind.investigationIds, "investigations").filter((id) => agreed(id, ind.id));
   }
+  for (const al of add.alerts) {
+    if (al.analysisId && !known.analyses.has(al.analysisId)) al.analysisId = null;
+    if (al.investigationId && !known.investigations.has(al.investigationId)) al.investigationId = null;
+    // Escalated to a case that is not here: back to triage, as when a case is deleted.
+    if (al.status === "escalated" && !al.investigationId) al.status = "triage";
+  }
   // An intact record already here gains the back-link of an agreed link to a
   // restored record (appended; nothing else in it changes).
   const linkedBack = new Map();
@@ -241,6 +276,73 @@ export async function importBackup(store, parsed, now = new Date()) {
   });
   await store.commit(ops);
   return counts;
+}
+
+// ------------------------------------------------------------ alert intake
+export const MAX_ALERT_IMPORT = 500;
+const ALERT_COLUMNS = { url: ["url", "link"], source: ["source"], externalId: ["external_id", "externalid", "ref", "id"], reporter: ["reporter", "reported_by"] };
+
+/**
+ * Parse links to queue as alerts: a JSON array (or {alerts: [...]}) of
+ * objects or strings, CSV with a url column, or plain text with one link per
+ * line. Each item is {input, source, externalId, reporter}; the UI analyses
+ * the links (never fetching them) before queueing. A row with a field over
+ * its limit is rejected, never truncated.
+ * @returns {{items: object[], rejected: number, format: string}}
+ */
+export function parseAlertFile(text) {
+  if (text.length > MAX_IMPORT_BYTES) throw new ImportError("The file is larger than 5 MB.");
+  const trimmed = text.replace(/^﻿/, "").trim();
+  let rows;
+  let format;
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    let data;
+    try {
+      data = JSON.parse(trimmed);
+    } catch {
+      throw new ImportError("The file looks like JSON but cannot be parsed.");
+    }
+    const list = Array.isArray(data) ? data : data?.alerts;
+    if (!Array.isArray(list)) throw new ImportError("A JSON alert file holds an array, or an object with an “alerts” array.");
+    const field = (o, names) => {
+      const key = Object.keys(o).find((k) => names.includes(k.toLowerCase()));
+      // Ticket ids are often numbers.
+      return key === undefined ? undefined : Number.isFinite(o[key]) ? String(o[key]) : o[key];
+    };
+    rows = list.map((o) => (typeof o === "string" ? { url: o }
+      : o && typeof o === "object" && !Array.isArray(o) ? Object.fromEntries(Object.entries(ALERT_COLUMNS).map(([f, names]) => [f, field(o, names)]))
+        : null));
+    format = "JSON";
+  } else {
+    const lines = trimmed.split(/\r?\n/).filter((l) => l.trim());
+    const header = lines.length ? parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase()) : [];
+    const col = Object.fromEntries(Object.entries(ALERT_COLUMNS).map(([f, names]) => [f, header.findIndex((h) => names.includes(h))]));
+    if (col.url !== -1) {
+      rows = lines.slice(1).map((line) => {
+        const cells = parseCsvLine(line);
+        // Undo the formula guard this app's own CSV exports add.
+        return Object.fromEntries(Object.entries(col).map(([f, i]) => [f, i === -1 ? "" : (cells[i] ?? "").replace(/^'(?=[=+\-@])/, "")]));
+      });
+      format = "CSV";
+    } else {
+      rows = lines.map((l) => ({ url: l }));
+      format = "text";
+    }
+  }
+  if (rows.length > MAX_ALERT_IMPORT) {
+    throw new ImportError(`The file holds ${rows.length.toLocaleString("en-US")} alerts; the limit per import is ${MAX_ALERT_IMPORT}. Split the file.`);
+  }
+  const fits = (v, max) => v === undefined || v === null || (typeof v === "string" && v.trim().length <= max);
+  const items = [];
+  let rejected = 0;
+  for (const r of rows) {
+    if (!r || typeof r.url !== "string" || !r.url.trim() || !fits(r.source, LIMITS.source) || !fits(r.externalId, LIMITS.externalId) || !fits(r.reporter, LIMITS.reporter)) {
+      rejected++;
+      continue;
+    }
+    items.push({ input: r.url.trim(), source: r.source?.trim() ?? "", externalId: r.externalId?.trim() ?? "", reporter: r.reporter?.trim() ?? "" });
+  }
+  return { items, rejected, format };
 }
 
 // ------------------------------------------------------------ indicators
