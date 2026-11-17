@@ -27,16 +27,14 @@ ships only when its tests, the CI gate and the security controls in
 | Workspace safety | Atomic changes, damaged-record repair, verified backups and restores |
 | **Alert queue (phase 1)** | Intake by paste or file, repeat folding, severity from verdict, triage → disposition or escalation, bulk actions, queue-health metrics (median time to triage and to close, false-positive rate) |
 | **Reported email (phase 2)** | `.eml` intake read as text only; sender, authentication, link-text and attachment findings; links queued as alerts; Markdown report |
+| **Playbooks (phase 3)** | Response checklists on investigations: four built-in playbooks, the analyst's own steps, progress, history, applied at escalation, in case reports and backups |
 
 ## Next, inside the local-first design (no backend needed)
 
-1. **Playbooks.** Each investigation type would get a checklist, for example
-   *credential phish*: block the domain, reset exposed accounts, notify the
-   reporters. The investigation history would record each completed step.
-2. **Queue rules.** Local rules that act on intake, for example "registrable
+1. **Queue rules.** Local rules that act on intake, for example "registrable
    domain is on the allow-list → close as benign" or "brand plus a free TLD →
    critical". Every automatic action is recorded in the alert's history.
-3. **Reporting.** A weekly queue report (volumes, dispositions, time to
+2. **Reporting.** A weekly queue report (volumes, dispositions, time to
    triage and close, top lure domains), exported as Markdown and CSV with
    values defanged.
 

@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
 import { defang } from "../../engine/defang.js";
-import { INVESTIGATION_STATUSES, PRIORITIES } from "../../workspace/workspace.js";
+import { PLAYBOOKS } from "../../workspace/playbooks.js";
+import { INVESTIGATION_STATUSES, LIMITS, PRIORITIES } from "../../workspace/workspace.js";
 import { Dialog, Empty, PageHeader, Time, Verdict } from "../components.jsx";
 import { useAction, useApp, useData } from "../context.js";
 import { download, stamp } from "../download.js";
@@ -40,7 +41,7 @@ export function Investigations() {
       ) : (
         <div class="table-wrap">
           <table class="table">
-            <thead><tr><th scope="col">Title</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Analyses</th><th scope="col">Indicators</th><th scope="col">Updated</th></tr></thead>
+            <thead><tr><th scope="col">Title</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col">Checklist</th><th scope="col">Analyses</th><th scope="col">Indicators</th><th scope="col">Updated</th></tr></thead>
             <tbody>
               {list.map((c) => (
                 <tr key={c.id}>
@@ -48,6 +49,7 @@ export function Investigations() {
                     {c.tags.length > 0 && <div class="tags">{c.tags.map((t) => <span key={t} class="tag">{t}</span>)}</div>}</td>
                   <td><span class="prio" data-prio={c.priority}>{c.priority}</span></td>
                   <td>{STATUS_LABEL[c.status]}</td>
+                  <td class="num">{c.tasks?.length ? `${c.tasks.filter((t) => t.done).length}/${c.tasks.length}` : "—"}</td>
                   <td class="num">{c.analysisIds.length}</td>
                   <td class="num">{c.indicatorIds.length}</td>
                   <td class="muted"><Time iso={c.updatedAt} /></td>
@@ -66,7 +68,7 @@ export function Investigations() {
 
 const HISTORY_LABEL = {
   created: "", renamed: "Renamed", summary: "Summary", status: "Status", priority: "Priority", tags: "Tags",
-  note: "Note", "note-removed": "Note removed", linked: "Linked", unlinked: "Unlinked", indicator: "Indicator", alert: "Alert",
+  note: "Note", "note-removed": "Note removed", playbook: "Playbook", task: "Checklist", linked: "Linked", unlinked: "Unlinked", indicator: "Indicator", alert: "Alert",
 };
 
 function InvestigationForm({ onDone }) {
@@ -140,6 +142,7 @@ export function InvestigationDetail({ id }) {
 
       <div class="case-grid">
         <div class="stack">
+          <Checklist inv={inv} />
           <section class="panel" aria-labelledby="ca-title">
             <div class="panel-head"><h2 id="ca-title" class="section-title">Analyses <span class="count">{analyses.length}</span></h2><a href="#/analyze">Analyse a link</a></div>
             {analyses.length === 0 ? <p class="muted">Add analyses from any report with “Add to investigation”.</p> : (
@@ -198,6 +201,60 @@ export function InvestigationDetail({ id }) {
         <EditForm inv={inv} onDone={() => setEditing(false)} />
       </Dialog>
     </>
+  );
+}
+
+/** The case's response checklist: playbook steps and the analyst's own, each ticked off with history. */
+function Checklist({ inv }) {
+  const { ws } = useApp();
+  const act = useAction();
+  const [playbook, setPlaybook] = useState("");
+  const [text, setText] = useState("");
+  const tasks = inv.tasks ?? [];
+  const done = tasks.filter((t) => t.done).length;
+  return (
+    <section class="panel stack" aria-labelledby="ck-title">
+      <h2 id="ck-title" class="section-title">Response checklist <span class="count">{tasks.length ? `${done}/${tasks.length}` : 0}</span></h2>
+        <form class="row ck-row" onSubmit={async (e) => {
+          e.preventDefault();
+          if (await act(() => ws.applyPlaybook(inv.id, playbook), "Playbook applied.")) setPlaybook("");
+        }}>
+          <label class="visually-hidden" for="ck-playbook">Playbook</label>
+          <select id="ck-playbook" class="select" value={playbook} onChange={(e) => setPlaybook(e.currentTarget.value)}>
+            <option value="">Choose a playbook…</option>
+            {PLAYBOOKS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button class="btn btn-secondary btn-sm" type="submit" disabled={!playbook}>Apply</button>
+        </form>
+      {tasks.length > 0 && (
+        <>
+          <progress class="progress" max={tasks.length} value={done} aria-label={`${done} of ${tasks.length} steps done`} />
+          <ul class="checklist">
+            {tasks.map((t) => (
+              <li key={t.id} data-done={t.done}>
+                <label>
+                  <input type="checkbox" checked={t.done} onChange={(e) => act(() => ws.setTaskDone(inv.id, t.id, e.currentTarget.checked))} />
+                  <span>{t.text}</span>
+                </label>
+                <button type="button" class="btn btn-quiet btn-sm" onClick={() => act(() => ws.deleteTask(inv.id, t.id), "Step removed.")}>Remove<span class="visually-hidden"> step: {t.text}</span></button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {tasks.length === 0 && <p class="muted">Apply a playbook, or add your own steps.</p>}
+      <form class="row ck-row" onSubmit={async (e) => {
+        e.preventDefault();
+        if (await act(() => ws.addTask(inv.id, text))) {
+          setText("");
+          document.getElementById("ck-new")?.focus();
+        }
+      }}>
+        <label class="visually-hidden" for="ck-new">New step</label>
+        <input id="ck-new" spellcheck={false} class="input" maxLength={LIMITS.task} value={text} placeholder="Add a step" onInput={(e) => setText(e.currentTarget.value)} />
+        <button class="btn btn-secondary btn-sm" type="submit" disabled={!text.trim()}>Add step</button>
+      </form>
+    </section>
   );
 }
 

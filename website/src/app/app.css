@@ -62,6 +62,16 @@ body { font-size: var(--t-md); }
 .auth li[data-level="unknown"] { color: var(--risk-inc); }
 details.panel > summary { cursor: pointer; font-weight: 600; }
 .facts.headers { margin-top: var(--s-3); font-size: var(--t-sm); }
+.progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.ck-row { flex-wrap: nowrap; }
+.ck-row .input, .ck-row .select { flex: 1 1 0; width: 0; min-width: 0; }
+.case-grid > * { min-width: 0; }
+.checklist { list-style: none; margin: 0; padding: 0; }
+.checklist li { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--line); }
+.checklist li:last-child { border-bottom: 0; }
+.checklist label { display: flex; gap: var(--s-2); align-items: flex-start; min-width: 0; overflow-wrap: anywhere; }
+.checklist input { margin-top: 3px; flex: none; }
+.checklist li[data-done="true"] span { color: var(--muted); text-decoration: line-through; }
 .kpis dt { font-size: var(--t-xs); color: var(--muted); }
 .kpis dd { margin: 0; font-size: var(--t-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
 

@@ -4,6 +4,7 @@
 
 import { defang, refang } from "../engine/defang.js";
 import { readUrl } from "../engine/url-anatomy.js";
+import { playbookById } from "./playbooks.js";
 import { STORES } from "./stores.js";
 
 export const INVESTIGATION_STATUSES = Object.freeze(["open", "investigating", "contained", "closed"]);
@@ -14,7 +15,7 @@ export const CONFIDENCE = Object.freeze(["low", "medium", "high"]);
 // "escalated" became (part of) an investigation, "closed" carries a disposition.
 export const ALERT_STATUSES = Object.freeze(["new", "triage", "escalated", "closed"]);
 export const DISPOSITIONS = Object.freeze(["true-positive", "benign", "false-positive", "duplicate"]);
-export const LIMITS = Object.freeze({ title: 200, summary: 4000, note: 10000, tag: 40, tags: 20, value: 2048, source: 60, externalId: 120, reporter: 200, comment: 1000 });
+export const LIMITS = Object.freeze({ title: 200, summary: 4000, note: 10000, tag: 40, tags: 20, value: 2048, source: 60, externalId: 120, reporter: 200, comment: 1000, task: 200, tasks: 100 });
 
 export class WorkspaceError extends Error {}
 
@@ -116,7 +117,9 @@ const INTACT = {
   investigations: (r) => isStr(r.id) && isStr(r.title) && isStr(r.summary) && INVESTIGATION_STATUSES.includes(r.status) && PRIORITIES.includes(r.priority)
     && strs(r.tags) && strs(r.analysisIds) && strs(r.indicatorIds) && isStr(r.createdAt) && isStr(r.updatedAt)
     && Array.isArray(r.notes) && r.notes.every((x) => isObj(x) && isStr(x.id) && isStr(x.at) && isStr(x.body))
-    && Array.isArray(r.history) && r.history.every((h) => isObj(h) && isStr(h.at) && isStr(h.action) && isStr(h.detail)),
+    && Array.isArray(r.history) && r.history.every((h) => isObj(h) && isStr(h.at) && isStr(h.action) && isStr(h.detail))
+    // Records from before checklists have no tasks field; they are intact.
+    && (r.tasks === undefined || (Array.isArray(r.tasks) && r.tasks.every((t) => isObj(t) && isStr(t.id) && isStr(t.text) && typeof t.done === "boolean"))),
   indicators: (r) => isStr(r.id) && INDICATOR_TYPES.includes(r.type) && isStr(r.value) && r.id === `${r.type}:${r.value}`
     && CONFIDENCE.includes(r.confidence) && strs(r.tags) && strs(r.sources) && strs(r.analysisIds) && strs(r.investigationIds)
     && isStr(r.firstSeen) && isStr(r.lastSeen) && Number.isFinite(r.sightings) && isStr(r.stixId) && isStr(r.note ?? ""),
@@ -265,11 +268,36 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
     const at = ts();
     const record = u.put("investigations", {
       id: newId(), title: t, summary: clean(summary, LIMITS.summary), status: "open", priority, tags: normalizeTags(tags),
-      notes: [], analysisIds: [], indicatorIds: [], demo, createdAt: at, updatedAt: at,
+      notes: [], tasks: [], analysisIds: [], indicatorIds: [], demo, createdAt: at, updatedAt: at,
       history: [{ at, action: "created", detail: `Opened with ${priority} priority` }],
     });
     u.log("investigation.created", { type: "investigation", id: record.id }, `Opened “${t}”`);
     return record;
+  }
+  /** Add a playbook's steps that the case does not already have (matched by text). */
+  function stageApplyPlaybook(u, inv, playbookId) {
+    const book = playbookById(playbookId);
+    if (!book) throw new WorkspaceError("unknown playbook");
+    inv.tasks ??= [];
+    const have = new Set(inv.tasks.map((t) => t.text));
+    const fresh = book.steps.filter((text) => !have.has(text));
+    if (inv.tasks.length + fresh.length > LIMITS.tasks) throw new WorkspaceError(`an investigation holds at most ${LIMITS.tasks} checklist steps`);
+    const at = ts();
+    for (const text of fresh) inv.tasks.push({ id: newId(), text, done: false, doneAt: null, playbook: book.id });
+    inv.history.push({ at, action: "playbook", detail: `${book.name}: ${fresh.length} step${fresh.length === 1 ? "" : "s"} added` });
+    inv.updatedAt = at;
+    return u.put("investigations", inv);
+  }
+  /** Change one checklist step; fn returns the history detail, or false for no change. */
+  function stageTask(u, inv, taskId, fn) {
+    const task = (inv.tasks ?? []).find((t) => t.id === taskId);
+    if (!task) throw new WorkspaceError("checklist step not found");
+    const at = ts();
+    const detail = fn(task, at);
+    if (detail === false) return inv;
+    inv.history.push({ at, action: "task", detail: detail.length > 120 ? `${detail.slice(0, 119)}…` : detail });
+    inv.updatedAt = at;
+    return u.put("investigations", inv);
   }
   async function stageLinkAnalysis(u, id, analysisId) {
     const inv = await u.must("investigations", id);
@@ -456,6 +484,36 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
         return u.put("investigations", inv);
       });
     },
+    // ------------------------------------------------------------ checklists
+    applyPlaybook: (id, playbookId) => atomic(async (u) => stageApplyPlaybook(u, await u.must("investigations", id), playbookId)),
+    addTask(id, text) {
+      const t = clean(text, Infinity);
+      if (!t) return Promise.reject(new WorkspaceError("a checklist step cannot be empty"));
+      if (t.length > LIMITS.task) return Promise.reject(new WorkspaceError(`a checklist step is at most ${LIMITS.task} characters`));
+      return atomic(async (u) => {
+        const inv = await u.must("investigations", id);
+        inv.tasks ??= [];
+        if (inv.tasks.length >= LIMITS.tasks) throw new WorkspaceError(`an investigation holds at most ${LIMITS.tasks} checklist steps`);
+        const at = ts();
+        inv.tasks.push({ id: newId(), text: t, done: false, doneAt: null, playbook: null });
+        inv.history.push({ at, action: "task", detail: `Added: ${t.length > 110 ? `${t.slice(0, 109)}…` : t}` });
+        inv.updatedAt = at;
+        return u.put("investigations", inv);
+      });
+    },
+    setTaskDone: (id, taskId, done) => atomic(async (u) => stageTask(u, await u.must("investigations", id), taskId, (task, at) => {
+      if (task.done === !!done) return false;
+      task.done = !!done;
+      task.doneAt = task.done ? at : null;
+      return `${task.done ? "Done" : "Reopened"}: ${task.text}`;
+    })),
+    deleteTask: (id, taskId) => atomic(async (u) => {
+      const inv = await u.must("investigations", id);
+      return stageTask(u, inv, taskId, (task) => {
+        inv.tasks = inv.tasks.filter((t) => t.id !== taskId);
+        return `Removed: ${task.text}`;
+      });
+    }),
     deleteNote: (id, noteId) => atomic(async (u) => {
       const inv = await u.must("investigations", id);
       inv.notes = inv.notes.filter((n) => n.id !== noteId);
@@ -571,7 +629,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
      * Escalate an alert to an existing investigation, or to a new one opened
      * with the alert's severity. Its analysis joins the case.
      */
-    escalateAlert: (id, { investigationId = null, title = "" } = {}) => atomic(async (u) => {
+    escalateAlert: (id, { investigationId = null, title = "", playbookId = null } = {}) => atomic(async (u) => {
       const al = await u.must("alerts", id);
       if (al.status === "closed") throw new WorkspaceError("reopen the alert before escalating it");
       if (al.status === "escalated" && investigationId && al.investigationId === investigationId) {
@@ -585,6 +643,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
           priority: al.severity, tags: ["alert"], demo: al.demo,
         });
       if (al.analysisId && await u.get("analyses", al.analysisId)) await stageLinkAnalysis(u, inv.id, al.analysisId);
+      if (playbookId) stageApplyPlaybook(u, inv, playbookId);
       const at = ts();
       inv.history.push({ at, action: "alert", detail: `Escalated alert for ${defang(al.host)}` });
       inv.updatedAt = at;
@@ -743,7 +802,7 @@ const STIX_INDICATOR_ID = /^indicator--[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 const STORES_FOR_OVERVIEW = ["analyses", "investigations", "indicators", "alerts"];
 const MUTATIONS = ["saveAnalysis", "saveAnalyses", "deleteAnalysis", "deleteAnalyses", "createInvestigation", "updateInvestigation",
   "addNote", "deleteNote", "linkAnalysis", "unlinkAnalysis", "deleteInvestigation", "upsertIndicator", "upsertIndicators",
-  "updateIndicator", "deleteIndicator", "queueAlerts", "triageAlerts", "setAlertSeverity", "closeAlerts", "reopenAlert",
+  "updateIndicator", "deleteIndicator", "applyPlaybook", "addTask", "setTaskDone", "deleteTask", "queueAlerts", "triageAlerts", "setAlertSeverity", "closeAlerts", "reopenAlert",
   "escalateAlert", "deleteAlerts", "removeDamaged", "removeDemoData", "clearAll", "exclusive"];
 
 function hostOf(url) {

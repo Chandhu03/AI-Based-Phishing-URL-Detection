@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { defang } from "../../engine/defang.js";
 import { VERDICTS } from "../../engine/verdict.js";
+import { PLAYBOOKS } from "../../workspace/playbooks.js";
 import { ALERT_STATUSES, DISPOSITIONS, PRIORITIES } from "../../workspace/workspace.js";
 import { Dialog, Empty, IndicatorList, PageHeader, Specimen, Time, Verdict } from "../components.jsx";
 import { useAction, useApp, useData } from "../context.js";
@@ -264,6 +265,7 @@ export function AlertDetail({ id }) {
   const [disposition, setDisposition] = useState("");
   const [comment, setComment] = useState("");
   const [target, setTarget] = useState("");
+  const [playbook, setPlaybook] = useState("");
 
   if (loading && !data) return <PageHeader title="Alert" />;
   if (!data) return <PageHeader title="Alert not found" description="It may have been deleted from this workspace." />;
@@ -326,13 +328,19 @@ export function AlertDetail({ id }) {
                 </form>
                 <form class="stack" onSubmit={async (e) => {
                   e.preventDefault();
-                  const r = await act(() => ws.escalateAlert(a.id, { investigationId: target || null }), "Alert escalated.");
+                  const r = await act(() => ws.escalateAlert(a.id, { investigationId: target || null, playbookId: playbook || null }), "Alert escalated.");
                   if (r) navigate(`/investigations/${r.investigation.id}`);
                 }}>
                   <label class="field"><span class="field-label">Escalate to</span>
                     <select class="select" value={target} onChange={(e) => setTarget(e.currentTarget.value)}>
                       <option value="">A new investigation ({a.severity} priority)</option>
                       {cases.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                    </select>
+                  </label>
+                  <label class="field"><span class="field-label">Playbook (optional)</span>
+                    <select class="select" value={playbook} onChange={(e) => setPlaybook(e.currentTarget.value)}>
+                      <option value="">None</option>
+                      {PLAYBOOKS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </label>
                   <div class="row"><button class="btn btn-secondary" type="submit">Escalate</button></div>

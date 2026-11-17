@@ -33,6 +33,8 @@ export async function loadDemoWorkspace(ws, analyze) {
       .catch(() => ws.upsertIndicator({ type: "url", value: a.url, confidence: "high", source: "demo", analysisId: a.id, investigationId: inv.id, tags: ["demo"], demo: true }));
   }
   await ws.addNote(inv.id, "Example note: the brand appears only in the subdomain; the registrable domain is unrelated.");
+  const withSteps = await ws.applyPlaybook(inv.id, "credential-phishing");
+  for (const t of withSteps.tasks.slice(0, 2)) await ws.setTaskDone(inv.id, t.id, true);
   await ws.updateInvestigation(inv.id, { status: "investigating" });
   // Queue states to show: one alert escalated to the case, one closed as benign, the rest waiting.
   const lure = alerts.find((a) => a.verdict === "high-risk");
