@@ -11,7 +11,7 @@ const NAV = [
   ["indicators", "Indicators", "#/indicators", "M3 10h4l2-6 3 12 2-6h3"],
   ["engine", "Detection engine", "#/engine", "M10 3v3M10 14v3M3 10h3M14 10h3M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"],
 ];
-const ACTIVE = { analysis: "analyses", investigation: "investigations", alert: "alerts" };
+const ACTIVE = { analysis: "analyses", investigation: "investigations", alert: "alerts", rules: "alerts" };
 
 function Mark() {
   return (

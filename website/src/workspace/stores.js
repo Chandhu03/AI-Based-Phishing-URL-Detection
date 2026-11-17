@@ -4,11 +4,11 @@
 // IndexedDB keeps the workspace in this browser profile only. Nothing here
 // talks to a server.
 
-export const STORES = Object.freeze(["analyses", "investigations", "indicators", "activity", "alerts"]);
+export const STORES = Object.freeze(["analyses", "investigations", "indicators", "activity", "alerts", "rules"]);
 const DB_NAME = "securemind-workspace";
-// 2 adds the alerts store. Older builds cannot open a version 2 database
-// (see DEPLOYMENT.md, rollback).
-export const DB_VERSION = 2;
+// 2 added the alerts store, 3 the queue rules store. Older builds cannot open
+// a newer database (see DEPLOYMENT.md, rollback).
+export const DB_VERSION = 3;
 
 const clone = (value) => (value === undefined ? undefined : structuredClone(value));
 

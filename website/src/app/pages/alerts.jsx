@@ -12,7 +12,7 @@ export const ALERT_STATUS_LABEL = { new: "New", triage: "In triage", escalated: 
 const DISPOSITION_LABEL = { "true-positive": "True positive", benign: "Benign (expected activity)", "false-positive": "False positive", duplicate: "Duplicate" };
 const HISTORY_LABEL = {
   created: "Queued", repeat: "Repeat", triage: "Triage", severity: "Severity", closed: "Closed",
-  reopened: "Reopened", escalated: "Escalated", unlinked: "Unlinked",
+  reopened: "Reopened", escalated: "Escalated", unlinked: "Unlinked", rule: "Rule",
 };
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const io = () => import("../../workspace/io.js");
@@ -75,6 +75,7 @@ export function Alerts() {
   return (
     <>
       <PageHeader title="Alert queue" description="Links reported for review. Triage each one: close it with a disposition, or escalate it to an investigation. Links are analysed here and never opened.">
+        <a class="btn btn-secondary" href="#/alerts/rules">Queue rules</a>
         <button type="button" class="btn btn-primary" onClick={() => setIntake(true)}>Add alerts</button>
       </PageHeader>
 
@@ -87,7 +88,8 @@ export function Alerts() {
             <div><dt>Oldest open</dt><dd>{m.oldestOpen ? <Time iso={m.oldestOpen} /> : "—"}</dd></div>
             <div><dt>Median time to triage</dt><dd>{duration(m.timeToTriage)}</dd></div>
             <div><dt>Median time to close</dt><dd>{duration(m.timeToClose)}</dd></div>
-            <div><dt>Closed</dt><dd>{m.closedRecent}</dd></div>
+            <div><dt>Closed by analysts</dt><dd>{m.closedRecent}</dd></div>
+            <div><dt>Closed by rules</dt><dd>{m.closedByRule}</dd></div>
             <div><dt>False positives</dt><dd>{m.falsePositiveRate == null ? "—" : `${Math.round(m.falsePositiveRate * 100)}%`}</dd></div>
           </dl>
         </section>
@@ -219,7 +221,7 @@ function AlertIntake({ onDone }) {
       }
       const result = await act(() => ws.queueAlerts(items));
       if (!result) return;
-      toast(`${result.created.length} queued${result.merged ? `, ${result.merged} seen again` : ""}${rejected ? `, ${rejected} rejected` : ""}.`);
+      toast(`${result.created.length} queued${result.merged ? `, ${result.merged} seen again` : ""}${result.closedByRule ? `, ${result.closedByRule} closed by queue rules` : ""}${rejected ? `, ${rejected} rejected` : ""}.`);
       onDone();
     } finally {
       setBusy(false);

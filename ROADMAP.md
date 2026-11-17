@@ -28,13 +28,11 @@ ships only when its tests, the CI gate and the security controls in
 | **Alert queue (phase 1)** | Intake by paste or file, repeat folding, severity from verdict, triage → disposition or escalation, bulk actions, queue-health metrics (median time to triage and to close, false-positive rate) |
 | **Reported email (phase 2)** | `.eml` intake read as text only; sender, authentication, link-text and attachment findings; links queued as alerts; Markdown report |
 | **Playbooks (phase 3)** | Response checklists on investigations: four built-in playbooks, the analyst's own steps, progress, history, applied at escalation, in case reports and backups |
+| **Queue rules (phase 4)** | Exact-match intake automation: close known-good links or set severity; never closes a high-risk or suspicious link or a shared platform's domain; auditable and kept out of queue metrics |
 
 ## Next, inside the local-first design (no backend needed)
 
-1. **Queue rules.** Local rules that act on intake, for example "registrable
-   domain is on the allow-list → close as benign" or "brand plus a free TLD →
-   critical". Every automatic action is recorded in the alert's history.
-2. **Reporting.** A weekly queue report (volumes, dispositions, time to
+1. **Reporting.** A weekly queue report (volumes, dispositions, time to
    triage and close, top lure domains), exported as Markdown and CSV with
    values defanged.
 

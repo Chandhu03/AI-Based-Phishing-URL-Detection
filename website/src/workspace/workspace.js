@@ -3,6 +3,7 @@
 // every rule is unit-tested without a browser.
 
 import { defang, refang } from "../engine/defang.js";
+import { VERDICTS } from "../engine/verdict.js";
 import { readUrl } from "../engine/url-anatomy.js";
 import { playbookById } from "./playbooks.js";
 import { STORES } from "./stores.js";
@@ -15,7 +16,22 @@ export const CONFIDENCE = Object.freeze(["low", "medium", "high"]);
 // "escalated" became (part of) an investigation, "closed" carries a disposition.
 export const ALERT_STATUSES = Object.freeze(["new", "triage", "escalated", "closed"]);
 export const DISPOSITIONS = Object.freeze(["true-positive", "benign", "false-positive", "duplicate"]);
-export const LIMITS = Object.freeze({ title: 200, summary: 4000, note: 10000, tag: 40, tags: 20, value: 2048, source: 60, externalId: 120, reporter: 200, comment: 1000, task: 200, tasks: 100 });
+// Queue rules: a match on one exact field, and one action. No patterns.
+export const RULE_FIELDS = Object.freeze(["url", "host", "domain", "source"]);
+/** Dispositions a rule may close with; a rule can never declare a true positive. */
+export const RULE_DISPOSITIONS = Object.freeze(["benign", "false-positive", "duplicate"]);
+export const MAX_RULES = 50;
+/**
+ * Registrable domains where anyone can publish pages or files: a domain rule
+ * that closes their alerts would hide phishing hosted there. Use a host or
+ * URL rule for a specific, known-good address instead.
+ */
+export const SHARED_DOMAINS = Object.freeze(["google.com", "googleusercontent.com", "sharepoint.com", "onedrive.com", "1drv.ms", "live.com",
+  "office.com", "microsoft.com", "dropbox.com", "dropboxusercontent.com", "box.com", "wetransfer.com", "notion.so", "notion.site", "canva.com",
+  "github.com", "gitlab.com", "amazonaws.com", "cloudfront.net", "azureedge.net", "windows.net", "firebaseapp.com", "web.app", "weebly.com",
+  "wixsite.com", "squarespace.com", "webflow.io", "typeform.com", "jotform.com", "forms.gle",
+  "ipfs.io", "pages.dev", "workers.dev", "netlify.app", "vercel.app", "herokuapp.com", "glitch.me", "replit.app", "blogspot.com", "wordpress.com"]);
+export const LIMITS = Object.freeze({ title: 200, summary: 4000, note: 10000, tag: 40, tags: 20, value: 2048, source: 60, externalId: 120, reporter: 200, comment: 1000, task: 200, tasks: 100, ruleName: 80 });
 
 export class WorkspaceError extends Error {}
 
@@ -124,12 +140,17 @@ const INTACT = {
     && CONFIDENCE.includes(r.confidence) && strs(r.tags) && strs(r.sources) && strs(r.analysisIds) && strs(r.investigationIds)
     && isStr(r.firstSeen) && isStr(r.lastSeen) && Number.isFinite(r.sightings) && isStr(r.stixId) && isStr(r.note ?? ""),
   activity: (r) => isStr(r.id) && isStr(r.at) && isStr(r.kind) && isStr(r.summary),
+  rules: (r) => isStr(r.id) && isStr(r.name) && typeof r.enabled === "boolean" && isStr(r.createdAt) && isStr(r.updatedAt)
+    && isObj(r.match) && RULE_FIELDS.includes(r.match.field) && isStr(r.match.value)
+    && isObj(r.action) && ((r.action.type === "close" && RULE_DISPOSITIONS.includes(r.action.disposition)) || (r.action.type === "severity" && PRIORITIES.includes(r.action.severity)))
+    && Number.isInteger(r.hits) && (r.lastHitAt === null || isStr(r.lastHitAt)),
   alerts: (r) => isStr(r.id) && isStr(r.createdAt) && isStr(r.updatedAt) && isStr(r.lastSeen) && Number.isInteger(r.occurrences) && r.occurrences > 0
     && isStr(r.url) && isStr(r.host) && VERDICT_LEVELS.includes(r.verdict) && PRIORITIES.includes(r.severity) && ALERT_STATUSES.includes(r.status)
     && isStr(r.source) && isStr(r.externalId) && isStr(r.reporter)
     && (r.status === "closed" ? DISPOSITIONS.includes(r.disposition) && isStr(r.closedAt) : r.disposition === null)
     && (r.status === "escalated" ? isStr(r.investigationId) : r.investigationId === null || isStr(r.investigationId))
     && (r.analysisId === null || isStr(r.analysisId)) && (r.triagedAt === null || isStr(r.triagedAt))
+    && (r.closedByRule === undefined || r.closedByRule === null || isStr(r.closedByRule))
     && Array.isArray(r.history) && r.history.every((h) => isObj(h) && isStr(h.at) && isStr(h.action) && isStr(h.detail)),
 };
 /** True when a stored record has every field the workspace reads. */
@@ -320,6 +341,33 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
    * still in the queue (not closed) is counted on that alert instead: one
    * phishing wave reported by fifty people is one alert seen fifty times.
    */
+  /** The first enabled rule (oldest first) whose field equals the alert's. */
+  async function matchingRule(u, alert) {
+    const rules = (await u.list("rules")).filter((r) => r.enabled).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const value = { url: alert.url, host: alert.host, domain: alert.registrableDomain, source: alert.source };
+    return rules.find((r) => value[r.match.field] === r.match.value) ?? null;
+  }
+  /** Apply a rule to a new alert. A close rule never closes an alert judged high risk or suspicious. */
+  function applyRule(u, rule, alert, at) {
+    rule.hits += 1;
+    rule.lastHitAt = at;
+    u.put("rules", rule);
+    const name = `“${rule.name}”`;
+    if (rule.action.type === "severity") {
+      if (alert.severity !== rule.action.severity) {
+        alert.history.push({ at, action: "rule", detail: `Severity ${alert.severity} → ${rule.action.severity} by rule ${name}` });
+        alert.severity = rule.action.severity;
+      }
+      return "severity";
+    }
+    if (alert.verdict === "high-risk" || alert.verdict === "suspicious") {
+      alert.history.push({ at, action: "rule", detail: `Matched rule ${name}; not closed, because the link was judged ${VERDICT_LABEL[alert.verdict]}` });
+      return "held";
+    }
+    Object.assign(alert, { status: "closed", disposition: rule.action.disposition, closedAt: at, triagedAt: at, closedByRule: rule.id });
+    alert.history.push({ at, action: "rule", detail: `Closed as ${rule.action.disposition} by rule ${name}` });
+    return "closed";
+  }
   async function stageAlert(u, { report, source = "manual", externalId = "", reporter = "", demo = false }) {
     if (!report?.ok) throw new WorkspaceError("only analysed links can be queued");
     const src = clean(source, Infinity);
@@ -329,7 +377,8 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
     if (src.length > LIMITS.source || ext.length > LIMITS.externalId || who.length > LIMITS.reporter) throw new WorkspaceError("an alert field is too long");
     const at = ts();
     const from = [src || "manual", ext && `ref ${ext}`, who && `reported by ${who}`].filter(Boolean).join(", ");
-    const open = (await u.list("alerts")).find((a) => a.url === report.url && a.status !== "closed");
+    // A link already in the queue counts as a repeat; so does one a rule already closed (no new alert or analysis).
+    const open = (await u.list("alerts")).find((a) => a.url === report.url && (a.status !== "closed" || a.closedByRule));
     if (open) {
       open.occurrences += 1;
       open.lastSeen = at;
@@ -337,17 +386,18 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       open.demo = open.demo && demo;
       open.history.push({ at, action: "repeat", detail: `Seen again (${from})` });
       u.put("alerts", open);
-      return { alert: open, merged: true };
+      return { alert: open, merged: true, rule: null };
     }
     const analysis = stageAnalysis(u, report, demo);
     const alert = u.put("alerts", {
       id: newId(), createdAt: at, updatedAt: at, lastSeen: at, occurrences: 1, demo,
       url: report.url, host: report.facts.host, registrableDomain: report.facts.registrableDomain, verdict: report.verdict.level,
       analysisId: analysis.id, severity: VERDICT_SEVERITY[report.verdict.level], status: "new", disposition: null,
-      investigationId: null, triagedAt: null, closedAt: null, source: src || "manual", externalId: ext, reporter: who,
+      investigationId: null, triagedAt: null, closedAt: null, closedByRule: null, source: src || "manual", externalId: ext, reporter: who,
       history: [{ at, action: "created", detail: `Queued from ${from}` }],
     });
-    return { alert, merged: false };
+    const rule = await matchingRule(u, alert);
+    return { alert, merged: false, rule: rule ? applyRule(u, rule, alert, at) : null };
   }
   /** Read alerts and run fn on each that exists; missing ids are an error, so a bulk action never half-applies. */
   async function eachAlert(u, ids, fn) {
@@ -572,6 +622,57 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
         || key(o)?.endsWith(`.${mine}`) || mine.endsWith(`.${key(o)}`)));
     },
 
+    // ------------------------------------------------------------ queue rules
+    /**
+     * Add a queue rule. It applies to alerts queued from now on, never to
+     * alerts already in the queue.
+     * @param {{name: string, field: string, value: string, action: "close"|"severity", disposition?: string, severity?: string}} input
+     */
+    createRule({ name, field, value, action, disposition, severity }) {
+      const n = clean(name, Infinity);
+      if (!n) return Promise.reject(new WorkspaceError("a rule needs a name"));
+      if (n.length > LIMITS.ruleName) return Promise.reject(new WorkspaceError(`a rule name is at most ${LIMITS.ruleName} characters`));
+      if (!RULE_FIELDS.includes(field)) return Promise.reject(new WorkspaceError("unknown rule field"));
+      const v = field === "source" ? clean(value, Infinity) : normalizeIndicator(field === "host" ? "hostname" : field, refang(String(value ?? "")));
+      if (!v || (field === "source" && v.length > LIMITS.source)) return Promise.reject(new WorkspaceError(`that is not a valid ${field === "domain" ? "registrable domain" : field}`));
+      let act;
+      if (action === "close") {
+        if (!RULE_DISPOSITIONS.includes(disposition)) return Promise.reject(new WorkspaceError("a rule can close only as benign, false positive or duplicate"));
+        if (field === "domain" && SHARED_DOMAINS.includes(v)) {
+          return Promise.reject(new WorkspaceError(`anyone can publish on ${v}, so a domain rule must not close its alerts; use a host or URL rule for a known address`));
+        }
+        act = { type: "close", disposition };
+      } else if (action === "severity") {
+        if (!PRIORITIES.includes(severity)) return Promise.reject(new WorkspaceError("unknown severity"));
+        act = { type: "severity", severity };
+      } else return Promise.reject(new WorkspaceError("unknown rule action"));
+      return atomic(async (u) => {
+        if ((await u.list("rules")).length >= MAX_RULES) throw new WorkspaceError(`at most ${MAX_RULES} rules`);
+        const at = ts();
+        const rule = u.put("rules", { id: newId(), name: n, enabled: true, match: { field, value: v }, action: act, hits: 0, lastHitAt: null, createdAt: at, updatedAt: at });
+        u.log("rule.created", null, `Rule “${n}” added`);
+        return rule;
+      });
+    },
+    setRuleEnabled: (id, enabled) => atomic(async (u) => {
+      const rule = await u.must("rules", id);
+      if (rule.enabled === !!enabled) return rule;
+      if (enabled && rule.action.type === "close" && rule.match.field === "domain" && SHARED_DOMAINS.includes(rule.match.value)) {
+        throw new WorkspaceError(`anyone can publish on ${rule.match.value}, so a domain rule must not close its alerts; delete this rule`);
+      }
+      rule.enabled = !!enabled;
+      rule.updatedAt = ts();
+      u.log("rule.changed", null, `Rule “${rule.name}” ${rule.enabled ? "switched on" : "switched off"}`);
+      return u.put("rules", rule);
+    }),
+    deleteRule: (id) => atomic(async (u) => {
+      const rule = await u.must("rules", id);
+      u.del("rules", id);
+      u.log("rule.deleted", null, `Rule “${rule.name}” deleted`);
+    }),
+    /** Rules in the order they are tried (oldest first). */
+    listRules: async () => (await intactList("rules")).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+
     // ------------------------------------------------------------ alert queue
     /**
      * Queue analysed links as alerts in one transaction: one bad item queues nothing.
@@ -582,8 +683,11 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       for (const it of items) results.push(await stageAlert(u, { ...it, demo }));
       const created = results.filter((r) => !r.merged).map((r) => r.alert);
       const merged = results.length - created.length;
-      if (results.length) u.log("alert.queued", null, `Queued ${created.length} alert${created.length === 1 ? "" : "s"}${merged ? `; ${merged} seen again` : ""}`);
-      return { created, merged };
+      const closedByRule = results.filter((r) => r.rule === "closed").length;
+      if (results.length) {
+        u.log("alert.queued", null, `Queued ${created.length} alert${created.length === 1 ? "" : "s"}${merged ? `; ${merged} seen again` : ""}${closedByRule ? `; ${closedByRule} closed by queue rules` : ""}`);
+      }
+      return { created, merged, closedByRule };
     }),
     /** Move new alerts into triage; alerts past "new" are left as they are. */
     triageAlerts: (ids) => atomic((u) => eachAlert(u, ids, (al, at) => {
@@ -611,6 +715,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
           al.status = "closed";
           al.disposition = disposition;
           al.closedAt = at;
+          al.closedByRule = null;
           al.triagedAt ??= at;
           al.history.push({ at, action: "closed", detail: why ? `${disposition}: ${why}` : disposition });
         });
@@ -624,6 +729,7 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       al.status = al.investigationId ? "escalated" : "triage";
       al.disposition = null;
       al.closedAt = null;
+      al.closedByRule = null;
     }))[0] ?? u.must("alerts", id)),
     /**
      * Escalate an alert to an existing investigation, or to a new one opened
@@ -683,7 +789,10 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       const since = new Date(now().getTime() - days * 864e5).toISOString();
       const alerts = await intactList("alerts");
       const open = alerts.filter((a) => ALERT_OPEN.has(a.status));
-      const closed = alerts.filter((a) => a.status === "closed" && a.closedAt >= since);
+      // Alerts closed by a queue rule are not analyst work: they are counted
+      // apart and kept out of the medians and the false-positive rate.
+      const byRule = alerts.filter((a) => a.status === "closed" && a.closedByRule && a.closedAt >= since);
+      const closed = alerts.filter((a) => a.status === "closed" && !a.closedByRule && a.closedAt >= since);
       const span = (from, to) => Date.parse(to) - Date.parse(from);
       return {
         days,
@@ -693,9 +802,10 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
         openBySeverity: Object.fromEntries(PRIORITIES.map((p) => [p, open.filter((a) => a.severity === p).length])),
         oldestOpen: open.reduce((min, a) => (!min || a.createdAt < min ? a.createdAt : min), null),
         closedRecent: closed.length,
+        closedByRule: byRule.length,
         byDisposition: Object.fromEntries(DISPOSITIONS.map((d) => [d, closed.filter((a) => a.disposition === d).length])),
         falsePositiveRate: closed.length ? closed.filter((a) => a.disposition === "false-positive").length / closed.length : null,
-        timeToTriage: median(alerts.filter((a) => a.triagedAt && a.triagedAt >= since).map((a) => span(a.createdAt, a.triagedAt))),
+        timeToTriage: median(alerts.filter((a) => a.triagedAt && !a.closedByRule && a.triagedAt >= since).map((a) => span(a.createdAt, a.triagedAt))),
         timeToClose: median(closed.map((a) => span(a.createdAt, a.closedAt))),
       };
     },
@@ -797,13 +907,14 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 const ALERT_OPEN = new Set(["new", "triage"]);
+const VERDICT_LABEL = Object.fromEntries(Object.entries(VERDICTS).map(([k, v]) => [k, v.label.toLowerCase()]));
 
 const STIX_INDICATOR_ID = /^indicator--[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const STORES_FOR_OVERVIEW = ["analyses", "investigations", "indicators", "alerts"];
 const MUTATIONS = ["saveAnalysis", "saveAnalyses", "deleteAnalysis", "deleteAnalyses", "createInvestigation", "updateInvestigation",
   "addNote", "deleteNote", "linkAnalysis", "unlinkAnalysis", "deleteInvestigation", "upsertIndicator", "upsertIndicators",
   "updateIndicator", "deleteIndicator", "applyPlaybook", "addTask", "setTaskDone", "deleteTask", "queueAlerts", "triageAlerts", "setAlertSeverity", "closeAlerts", "reopenAlert",
-  "escalateAlert", "deleteAlerts", "removeDamaged", "removeDemoData", "clearAll", "exclusive"];
+  "escalateAlert", "deleteAlerts", "createRule", "setRuleEnabled", "deleteRule", "removeDamaged", "removeDemoData", "clearAll", "exclusive"];
 
 function hostOf(url) {
   try {

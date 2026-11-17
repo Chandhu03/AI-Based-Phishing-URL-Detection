@@ -30,6 +30,16 @@ and reporting all run in the visitor's browser.
   existing investigation, which receives the analysis. Bulk triage and close,
   a full history per alert, and queue health for the last 30 days: backlog,
   oldest open alert, median time to triage and to close, false-positive rate.
+- **Queue rules.** Exact-match automation applied once, when an alert is
+  queued (paste, file or reported email): when the URL, host, registrable
+  domain or source equals a value, close the alert (benign, false positive or
+  duplicate, never true positive) or set its severity. The oldest matching
+  rule wins; at most 50 rules; no patterns. A rule never closes a link judged
+  high risk or suspicious (the alert stays open and says so), and a domain
+  rule cannot close alerts on platforms where anyone can publish (for example
+  sharepoint.com or google.com). Repeats of a rule-closed link fold into that
+  alert. Rule-closed alerts are counted apart and kept out of the queue
+  medians and false-positive rate. Restored rules arrive switched off.
 - **Reported email.** Open a reported message (`.eml`, or pasted source;
   up to 5 MB). It is read as text: HTML is never rendered, remote content is
   never loaded, attachments are listed but never opened, and the message is

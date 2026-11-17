@@ -62,7 +62,7 @@ export function Email() {
     const ref = state.email.messageId.length <= LIMITS.externalId ? state.email.messageId : "";
     const result = await act(() => ws.queueAlerts(ok.map(({ report }) => ({ report, source: "reported-email", externalId: ref, reporter: who }))));
     if (!result) return;
-    toast(`${result.created.length} queued${result.merged ? `, ${result.merged} seen again` : ""}.`);
+    toast(`${result.created.length} queued${result.merged ? `, ${result.merged} seen again` : ""}${result.closedByRule ? `, ${result.closedByRule} closed by queue rules` : ""}.`);
     setState({ ...state, queued: true });
   }
 
@@ -119,6 +119,9 @@ export function Email() {
                 return <li key={k} data-level={authLevel(v)}><strong>{k.toUpperCase()}</strong> {v ? AUTH_LABEL[v] ?? v : "absent"}</li>;
               })}
             </ul>
+            <p class="muted small">{e.auth
+              ? <>Results added by <code>{e.auth.server || "an unnamed server"}</code>. Trust them only if that is your own mail server: a sender can write this header too.</>
+              : "The message has no Authentication-Results header, so SPF, DKIM and DMARC outcomes are unknown."}</p>
           </section>
 
           <section class="panel" aria-labelledby="em-findings">

@@ -6,7 +6,7 @@ import { defang, refang } from "../engine/defang.js";
 import { LIMITS as VERDICT_LIMITS } from "../engine/verdict.js";
 import { playbookById } from "./playbooks.js";
 import { STORES } from "./stores.js";
-import { ALERT_STATUSES, classifyIndicator, CONFIDENCE, DISPOSITIONS, INDICATOR_TYPES, INVESTIGATION_STATUSES, isIntact, LIMITS, MAX_IMPORT_BYTES, normalizeIndicator, normalizeTags, PRIORITIES } from "./workspace.js";
+import { ALERT_STATUSES, classifyIndicator, RULE_DISPOSITIONS, RULE_FIELDS, CONFIDENCE, DISPOSITIONS, INDICATOR_TYPES, INVESTIGATION_STATUSES, isIntact, LIMITS, MAX_IMPORT_BYTES, normalizeIndicator, normalizeTags, PRIORITIES } from "./workspace.js";
 
 // Loaded on demand by the UI (import, export and reports only).
 export { classifyIndicator, MAX_IMPORT_BYTES };
@@ -100,6 +100,27 @@ const REBUILD = {
       firstSeen, lastSeen, sightings, demo: r.demo === true,
     };
   },
+  /**
+   * Queue rules act without an analyst, so a backup could carry one that
+   * silently closes alerts. They are restored switched off and validated like
+   * new rules; the shared-domain guard applies when one is switched on.
+   */
+  rules(r) {
+    const createdAt = iso(r.createdAt);
+    const name = typeof r.name === "string" && r.name.trim().length <= LIMITS.ruleName ? str(r.name, LIMITS.ruleName).trim() : "";
+    const m = r.match;
+    const a = r.action;
+    if (!ID.test(r.id) || !createdAt || !name || !m || !RULE_FIELDS.includes(m.field) || typeof m.value !== "string") return null;
+    const value = m.field === "source" ? (m.value.length <= LIMITS.source ? str(m.value, LIMITS.source).trim() : "") : normalizeIndicator(m.field === "host" ? "hostname" : m.field, m.value);
+    if (!value) return null;
+    const action = a?.type === "close" && RULE_DISPOSITIONS.includes(a.disposition) ? { type: "close", disposition: a.disposition }
+      : a?.type === "severity" && PRIORITIES.includes(a.severity) ? { type: "severity", severity: a.severity } : null;
+    if (!action) return null;
+    return {
+      id: r.id, name, enabled: false, match: { field: m.field, value }, action, createdAt, updatedAt: iso(r.updatedAt) ?? createdAt,
+      hits: Number.isInteger(r.hits) && r.hits >= 0 ? Math.min(r.hits, 1e9) : 0, lastHitAt: iso(r.lastHitAt),
+    };
+  },
   /** The link is re-analysed, so a backup cannot set an alert's verdict or host. Links to other records are checked on import. */
   alerts(r, analyze) {
     const createdAt = iso(r.createdAt);
@@ -119,7 +140,7 @@ const REBUILD = {
       url: report.url, host: report.facts.host, registrableDomain: report.facts.registrableDomain, verdict: report.verdict.level,
       analysisId: ID.test(r.analysisId) ? r.analysisId : null, severity: r.severity, status: r.status,
       disposition: closed ? r.disposition : null, investigationId: ID.test(r.investigationId) ? r.investigationId : null,
-      triagedAt: iso(r.triagedAt), closedAt, source, externalId, reporter,
+      triagedAt: iso(r.triagedAt), closedAt, closedByRule: closed && ID.test(r.closedByRule) ? r.closedByRule : null, source, externalId, reporter,
       history: (Array.isArray(r.history) ? r.history : []).slice(0, 5000)
         .map((h) => ({ at: iso(h?.at), action: str(h?.action, 40), detail: str(h?.detail, ALERT_HISTORY_DETAIL) }))
         .filter((h) => h.at && ALERT_HISTORY_ACTIONS.has(h.action)),
@@ -127,7 +148,7 @@ const REBUILD = {
   },
 };
 const HISTORY_ACTIONS = new Set(["created", "renamed", "summary", "status", "priority", "tags", "note", "note-removed", "linked", "unlinked", "indicator", "alert", "playbook", "task"]);
-const ALERT_HISTORY_ACTIONS = new Set(["created", "repeat", "triage", "severity", "closed", "reopened", "escalated", "unlinked"]);
+const ALERT_HISTORY_ACTIONS = new Set(["created", "repeat", "triage", "severity", "closed", "reopened", "escalated", "unlinked", "rule"]);
 // The longest detail written: a close with a 1,000-character comment.
 const ALERT_HISTORY_DETAIL = 1100;
 
@@ -636,7 +657,7 @@ export function emailToMarkdown(email, links, now = new Date()) {
     `- Return-Path: ${addr(email.returnPath)}`,
     `- Date: ${md(email.date || "—")}`,
     `- Message-ID: ${email.messageId ? code(email.messageId) : "—"}`,
-    `- Authentication (receiving server): ${auth}`,
+    `- Authentication: ${auth}${email.auth ? ` (added by ${code(email.auth.server || "an unnamed server")}; trust it only if that is your own mail server)` : ""}`,
     `- Received hops: ${email.received}`,
     ...(email.wrapper ? [`- Reported by: ${addr(email.wrapper.from)} (forwarded as an attachment)`] : []),
     `- Report generated: ${now.toISOString()}`,
