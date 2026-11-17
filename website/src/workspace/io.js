@@ -112,13 +112,15 @@ const REBUILD = {
       disposition: closed ? r.disposition : null, investigationId: ID.test(r.investigationId) ? r.investigationId : null,
       triagedAt: iso(r.triagedAt), closedAt, source, externalId, reporter,
       history: (Array.isArray(r.history) ? r.history : []).slice(0, 5000)
-        .map((h) => ({ at: iso(h?.at), action: str(h?.action, 40), detail: str(h?.detail, 300) }))
+        .map((h) => ({ at: iso(h?.at), action: str(h?.action, 40), detail: str(h?.detail, ALERT_HISTORY_DETAIL) }))
         .filter((h) => h.at && ALERT_HISTORY_ACTIONS.has(h.action)),
     };
   },
 };
 const HISTORY_ACTIONS = new Set(["created", "renamed", "summary", "status", "priority", "tags", "note", "note-removed", "linked", "unlinked", "indicator", "alert"]);
 const ALERT_HISTORY_ACTIONS = new Set(["created", "repeat", "triage", "severity", "closed", "reopened", "escalated", "unlinked"]);
+// The longest detail written: a close with a 1,000-character comment.
+const ALERT_HISTORY_DETAIL = 1100;
 
 /**
  * Parse and validate a backup. `analyze(url, isoDate)` re-runs the engine on
@@ -304,7 +306,8 @@ export function parseAlertFile(text) {
     if (!Array.isArray(list)) throw new ImportError("A JSON alert file holds an array, or an object with an “alerts” array.");
     const field = (o, names) => {
       const key = Object.keys(o).find((k) => names.includes(k.toLowerCase()));
-      return key === undefined ? undefined : o[key];
+      // Ticket ids are often numbers.
+      return key === undefined ? undefined : Number.isFinite(o[key]) ? String(o[key]) : o[key];
     };
     rows = list.map((o) => (typeof o === "string" ? { url: o }
       : o && typeof o === "object" && !Array.isArray(o) ? Object.fromEntries(Object.entries(ALERT_COLUMNS).map(([f, names]) => [f, field(o, names)]))

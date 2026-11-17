@@ -158,7 +158,8 @@ test("alerts survive a backup round trip; older backups without alerts still res
   const source = fresh();
   const { created: [a, b] } = await source.queueAlerts([item(LURE, { reporter: "r@corp.example" }), item(PLAIN)]);
   const { investigation } = await source.escalateAlert(a.id);
-  await source.closeAlerts([b.id], { disposition: "benign", comment: "ok" });
+  const longComment = `${"c".repeat(999)}!`;
+  await source.closeAlerts([b.id], { disposition: "benign", comment: longComment });
   const backup = await exportBackup(source.store);
 
   const ws = fresh();
@@ -168,7 +169,9 @@ test("alerts survive a backup round trip; older backups without alerts still res
   assert.equal(restored.status, "escalated");
   assert.equal(restored.investigationId, investigation.id);
   assert.equal(restored.reporter, "r@corp.example");
-  assert.equal((await ws.getAlert(b.id)).disposition, "benign");
+  const closedB = await ws.getAlert(b.id);
+  assert.equal(closedB.disposition, "benign");
+  assert.equal(closedB.history.at(-1).detail, `benign: ${longComment}`, "a full-length close comment survives the round trip uncut");
 
   // A backup made before alerts existed has no "alerts" section.
   const old = structuredClone(backup);
@@ -216,10 +219,10 @@ test("alert files: text, CSV and JSON; long fields rejected; size and count capp
   assert.deepEqual(csv.items, [{ input: "https://a.example/x,y", source: "proofpoint", externalId: "=HYPERLINK(1)", reporter: "pat@corp.example" }]);
   assert.equal(csv.rejected, 2, "an empty link and an over-long reference are rejected");
 
-  const json = parseAlertFile(JSON.stringify({ alerts: [{ URL: "https://c.example/", Ref: "T-1" }, "https://d.example/", 42, { url: "https://e.example/", source: 7 }] }));
+  const json = parseAlertFile(JSON.stringify({ alerts: [{ URL: "https://c.example/", Ref: "T-1" }, "https://d.example/", 42, { url: "https://e.example/", source: ["x"] }, { url: "https://f.example/", id: 1234 }] }));
   assert.equal(json.format, "JSON");
-  assert.deepEqual(json.items.map((i) => [i.input, i.externalId]), [["https://c.example/", "T-1"], ["https://d.example/", ""]]);
-  assert.equal(json.rejected, 2);
+  assert.deepEqual(json.items.map((i) => [i.input, i.externalId]), [["https://c.example/", "T-1"], ["https://d.example/", ""], ["https://f.example/", "1234"]]);
+  assert.equal(json.rejected, 2, "a bare number and a non-text source are rejected; a numeric ticket id is kept as text");
 
   assert.throws(() => parseAlertFile("{nope"), ImportError);
   assert.throws(() => parseAlertFile('{"a":1}'), ImportError);

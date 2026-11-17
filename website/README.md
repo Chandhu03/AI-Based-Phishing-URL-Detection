@@ -22,7 +22,8 @@ and reporting all run in the visitor's browser.
   Never "safe".
 - **Alert queue.** Reported links arrive by paste or file (text, CSV with a
   `url` column and optional `source`, `external_id`, `reporter`, or JSON; up
-  to 500 per import, all or nothing). Each is analysed locally and queued with
+  to 500 per import; invalid rows are skipped and counted, the rest are queued
+  together). Each is analysed locally and queued with
   a severity from its verdict; a link already open in the queue counts as a
   repeat instead of a new alert. Alerts move new → in triage → closed (true
   positive, benign, false positive or duplicate) or escalated to a new or

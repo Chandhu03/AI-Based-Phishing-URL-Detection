@@ -66,7 +66,7 @@ export function Investigations() {
 
 const HISTORY_LABEL = {
   created: "", renamed: "Renamed", summary: "Summary", status: "Status", priority: "Priority", tags: "Tags",
-  note: "Note", "note-removed": "Note removed", linked: "Linked", unlinked: "Unlinked", indicator: "Indicator",
+  note: "Note", "note-removed": "Note removed", linked: "Linked", unlinked: "Unlinked", indicator: "Indicator", alert: "Alert",
 };
 
 function InvestigationForm({ onDone }) {
