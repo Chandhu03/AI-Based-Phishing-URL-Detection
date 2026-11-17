@@ -14,6 +14,7 @@ const ROUTES = [
   ["investigations", /^\/investigations$/],
   ["investigation", /^\/investigations\/([\w-]+)$/],
   ["indicators", /^\/indicators$/],
+  ["reports", /^\/reports$/],
   ["engine", /^\/engine$/],
   ["settings", /^\/settings$/],
 ];

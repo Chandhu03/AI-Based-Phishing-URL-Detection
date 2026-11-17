@@ -29,12 +29,16 @@ ships only when its tests, the CI gate and the security controls in
 | **Reported email (phase 2)** | `.eml` intake read as text only; sender, authentication, link-text and attachment findings; links queued as alerts; Markdown report |
 | **Playbooks (phase 3)** | Response checklists on investigations: four built-in playbooks, the analyst's own steps, progress, history, applied at escalation, in case reports and backups |
 | **Queue rules (phase 4)** | Exact-match intake automation: close known-good links or set severity; never closes a high-risk or suspicious link or a shared platform's domain; auditable and kept out of queue metrics |
+| **Reports (phase 5)** | Period reports (volumes, outcomes, response times, top lure domains, case and checklist progress), Markdown export; alert CSV export |
 
 ## Next, inside the local-first design (no backend needed)
 
-1. **Reporting.** A weekly queue report (volumes, dispositions, time to
-   triage and close, top lure domains), exported as Markdown and CSV with
-   values defanged.
+1. **Rule suggestions from history.** Propose a queue rule when the same
+   known-good link has been closed as benign several times by analysts.
+2. **Case timeline export.** One file per case for ticketing systems
+   (JSON with a documented schema), alongside the Markdown report.
+3. **Keyboard-driven triage.** Shortcuts for next alert, close as, and
+   escalate, for analysts working a long queue.
 
 ## Gated on an owner decision: a backend
 

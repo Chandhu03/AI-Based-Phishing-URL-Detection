@@ -149,7 +149,7 @@ test("with data, workspace pages do not scroll sideways at 320px", async ({ page
   await page.goto("/app/#/overview");
   await page.getByRole("button", { name: "Load demo workspace" }).click();
   await expect(page.locator(".demo-flag").first()).toBeVisible();
-  for (const route of ["#/overview", "#/alerts", "#/alerts/rules", "#/email", "#/analyses", "#/indicators", "#/investigations", "#/settings"]) {
+  for (const route of ["#/overview", "#/alerts", "#/alerts/rules", "#/email", "#/reports", "#/analyses", "#/indicators", "#/investigations", "#/settings"]) {
     await page.goto(`/app/${route}`);
     await expect(page.locator("[data-page-title]")).toBeVisible();
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -530,5 +530,28 @@ http://paypal.com.${MARKER}/login`);
   await page.goto("/app/#/alerts/rules");
   await expect(page.locator("tbody tr").first()).toContainText("1×");
   expect(w.requests.filter((u) => u.includes(MARKER))).toEqual([]);
+  expect(w.errors).toEqual([]);
+});
+
+test("reports: the demo period is summarised, and both exports are defanged", async ({ page }) => {
+  const w = watch(page);
+  await page.goto("/app/#/overview");
+  await page.getByRole("button", { name: "Load demo workspace" }).click();
+  await expect(page.locator(".demo-flag").first()).toBeVisible();
+  await page.goto("/app/#/reports");
+  await expect(page.locator("#rp-q + .kpis")).toContainText("Alerts queued8");
+  await expect(page.locator("#rp-l ~ table tbody tr").first()).toBeVisible();
+  const read = async (name) => {
+    const [d] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name }).click()]);
+    return (await d.createReadStream()).toArray().then((c) => Buffer.concat(c).toString("utf8"));
+  };
+  const md = await read("Export report");
+  expect(md).toContain("# Security operations report: last 7 days");
+  // No live link: a scheme may remain inside a query, but never before a host with a real dot.
+  const live = /https?:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+/i;
+  expect(md).not.toMatch(live);
+  const csv = await read("Export alerts CSV");
+  expect(csv.trim().split(/\r?\n/)).toHaveLength(9);
+  expect(csv).not.toMatch(live);
   expect(w.errors).toEqual([]);
 });

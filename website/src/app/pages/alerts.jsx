@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { defang } from "../../engine/defang.js";
 import { VERDICTS } from "../../engine/verdict.js";
+import { duration } from "../../workspace/format.js";
 import { PLAYBOOKS } from "../../workspace/playbooks.js";
 import { ALERT_STATUSES, DISPOSITIONS, PRIORITIES } from "../../workspace/workspace.js";
 import { Dialog, Empty, IndicatorList, PageHeader, Specimen, Time, Verdict } from "../components.jsx";
 import { useAction, useApp, useData } from "../context.js";
+import { download, stamp } from "../download.js";
 import { navigate } from "../router.js";
 
 const PAGE_SIZE = 25;
@@ -18,15 +20,6 @@ const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const io = () => import("../../workspace/io.js");
 const focusTitle = () => document.querySelector("[data-page-title]")?.focus();
 
-/** Milliseconds as a short duration: "12 min", "5 h", "3 days". */
-export function duration(ms) {
-  if (ms == null) return "—";
-  const min = Math.round(ms / 60000);
-  if (min < 1) return "under 1 min";
-  if (min < 60) return `${min} min`;
-  const h = Math.round(min / 60);
-  return h < 48 ? `${h} h` : `${Math.round(h / 24)} days`;
-}
 
 // Filters and page survive a visit to an alert and back within the session.
 let remembered = { status: "open", severity: "", query: "", offset: 0 };
@@ -76,6 +69,10 @@ export function Alerts() {
     <>
       <PageHeader title="Alert queue" description="Links reported for review. Triage each one: close it with a disposition, or escalate it to an investigation. Links are analysed here and never opened.">
         <a class="btn btn-secondary" href="#/alerts/rules">Queue rules</a>
+        <button type="button" class="btn btn-quiet" disabled={!total} onClick={async () => {
+          const all = await ws.listAlerts({ status: status || undefined, severity: severity || undefined, query });
+          download(`alerts-${stamp()}.csv`, (await io()).alertsToCsv(all), "text/csv");
+        }}>Export CSV</button>
         <button type="button" class="btn btn-primary" onClick={() => setIntake(true)}>Add alerts</button>
       </PageHeader>
 

@@ -9,7 +9,7 @@ and reporting all run in the visitor's browser.
 | `/` | Public homepage with a live, local analysis of one link |
 | `/research/` | How the detection model was trained and evaluated (figures generated at build time) |
 | `/trust/` | Privacy and security: data flow, enforced controls, threat model, disclosure |
-| `/app/` | The analyst workspace: Overview, Alert queue, Reported email, Analyse (one or many links), Analyses, Investigations, Indicators, Detection engine, Settings |
+| `/app/` | The analyst workspace: Overview, Alert queue (and queue rules), Reported email, Analyse (one or many links), Analyses, Investigations, Indicators, Reports, Detection engine, Settings |
 
 ## Capabilities
 
@@ -40,6 +40,14 @@ and reporting all run in the visitor's browser.
   sharepoint.com or google.com). Repeats of a rule-closed link fold into that
   alert. Rule-closed alerts are counted apart and kept out of the queue
   medians and false-positive rate. Restored rules arrive switched off.
+- **Reports.** A period report (7, 30 or 90 days) counted from stored
+  records: alerts queued and reports with repeats, by source and verdict;
+  escalations; closes by analysts (with dispositions) and by rules; median
+  time to triage and to close; false-positive rate; top lure domains;
+  investigations opened and closed, open by priority, checklist progress;
+  indicators recorded; most frequent findings. Exports as Markdown with
+  domains defanged. Alerts export as CSV (defanged, formula-safe) from the
+  report or from the queue's current filter.
 - **Reported email.** Open a reported message (`.eml`, or pasted source;
   up to 5 MB). It is read as text: HTML is never rendered, remote content is
   never loaded, attachments are listed but never opened, and the message is
