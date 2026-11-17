@@ -8,7 +8,7 @@
 # After editing this file, regenerate the lock files (see README).
 
 # Web application
-streamlit==1.65.0
+streamlit==1.66.1
 
 # URL handling (IDNA 2008 / UTS #46 host normalisation)
 idna==3.20
@@ -25,5 +25,6 @@ matplotlib==3.10.9
 seaborn==0.13.2
 
 # pillow is pulled in by streamlit and matplotlib; pinned here to keep the
-# patched release (12.2.0 has advisories fixed in 12.3.0).
-pillow==12.3.0
+# patched release (12.x has advisories fixed in 13.0.0; streamlit 1.66.1
+# is the first release that allows pillow 13).
+pillow==13.0.0

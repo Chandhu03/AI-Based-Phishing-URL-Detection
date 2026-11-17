@@ -1,11 +1,25 @@
-# Phishing URL Detection
+# SecureMind Labs
 
+A local-first platform for investigating phishing links. Paste a link and
+SecureMind shows who it really leads to, which deception techniques it uses
+and how a hostname model rates it, then lets you keep investigations and
+indicators together. Analysis and storage run entirely in the browser; a
+submitted link is never fetched or sent.
 
----
+**Quick start (platform):**
 
-## What is this project?
-A program that looks at a website link (URL) and predicts:
-**"Is this link trying to scam someone, or is it safe?"**
+```powershell
+cd website
+npm ci --ignore-scripts
+npm run dev        # http://localhost:5173  (workspace: http://localhost:5173/app/)
+```
+
+Details: [`website/README.md`](website/README.md) (architecture, commands),
+[`website/SECURITY.md`](website/SECURITY.md), [`website/DEPLOYMENT.md`](website/DEPLOYMENT.md),
+and the model evaluation in [`phase3/reports/engine/ENGINE_REPORT.md`](phase3/reports/engine/ENGINE_REPORT.md).
+
+The sections below cover the Python side: the research pipeline that trains
+and evaluates the model, and the original course-project demo.
 
 ---
 
@@ -13,10 +27,10 @@ A program that looks at a website link (URL) and predicts:
 
 | Path | What it is |
 |------|------------|
-| `app.py`, `securemind/` | The Streamlit demo app and its URL validation, features and demo model |
+| `website/` | **The SecureMind Labs platform**: public site and local-first analyst workspace (see `website/README.md`) |
+| `app.py`, `securemind/` | The legacy Streamlit course demo and its URL validation, features and demo model |
 | `tests/` | App, security, model-parity and lock-file tests |
-| `phase3/` | Reproducible evaluation pipeline, reports and model card (see `phase3/README.md`) |
-| `website/` | The SecureMind Labs static website (see `website/README.md` and `website/DEPLOYMENT.md`) |
+| `phase3/` | Reproducible evaluation pipeline; `run.py engine` trains and exports the platform's model (see `phase3/README.md`) |
 | `step*.py`, `dataset/`, `results/` | The original course-project pipeline and its artifacts |
 
 ---
@@ -111,6 +125,7 @@ Windows (PowerShell 5.1 or 7):
 $py = ".\.venv\Scripts\python.exe"
 & $py -m compileall -q -f -x '[\\/]\.(venv|git)[\\/]' .
 & $py -m pytest -q -p no:cacheprovider
+& $py -m pytest -q -p no:cacheprovider phase3/tests
 & $py -m pip_audit --progress-spinner off --require-hashes --disable-pip -r requirements-lock.txt
 & $py -m pip_audit --progress-spinner off
 & $py -m bandit -q -ll -r app.py securemind
@@ -122,6 +137,7 @@ Linux / macOS (bash):
 py=.venv/bin/python
 "$py" -m compileall -q -f -x '[\\/]\.(venv|git)[\\/]' .
 "$py" -m pytest -q -p no:cacheprovider
+"$py" -m pytest -q -p no:cacheprovider phase3/tests
 "$py" -m pip_audit --progress-spinner off --require-hashes --disable-pip -r requirements-lock.txt
 "$py" -m pip_audit --progress-spinner off
 "$py" -m bandit -q -ll -r app.py securemind
@@ -141,6 +157,13 @@ by the exit code.
 | `bandit -ll` | No medium- or high-severity static-analysis findings in app code. The research `step*` scripts are not scanned |
 
 CI also runs:
+- **The website job** (`website/`): `npm ci --ignore-scripts`, unit tests,
+  production build, Playwright end-to-end tests against the build with the
+  production headers, and `npm audit --audit-level=moderate`. Locally:
+  `cd website; npm ci --ignore-scripts; npm test; npm run build; npm run test:e2e`.
+- **Isolation:** Python checks run in a fresh virtual environment, so packages
+  preinstalled on the runner (such as pipx on Windows) are not judged by
+  `pip check` or `pip-audit`.
 - **Secret scanning** with gitleaks over every commit (see below).
 - **Workflow linting** with [actionlint](https://github.com/rhysd/actionlint)
   v1.7.12. On the runner it also runs shellcheck on the workflow scripts.
@@ -287,6 +310,21 @@ phishing_project/
 ## IMPORTANT: Using a real Kaggle dataset
 The synthetic dataset gives perfect (100%) accuracy because the
 patterns are too obvious.
+
+**Label mapping is unverified.** `step2_train_models_kaggle.py` and
+`step4_demo.py` treat `CLASS_LABEL` 1 as legitimate and 0 as phishing. The
+dataset's published descriptions do not define the label values: the
+Mendeley data card (doi:10.17632/h3cgnj8hft.1), the Kaggle mirror
+(`shashwatwork/phishing-dataset-for-machine-learning`) and the UNIMAS page all
+describe 5,000 phishing and 5,000 legitimate pages without saying which value
+is which. In the local file, rows 1–5000 are all label 1, and most URL-level
+signals (raw IP hosts, sensitive words, brand names and domains inside
+subdomains) are far more common in label 1, which suggests 1 may mean
+phishing. That is inference, not documentation, so the mapping has not been
+changed. Until it is confirmed from the original paper (Chiew et al., 2019,
+*Information Sciences* 484) or the dataset's ARFF header, treat the legacy
+Kaggle metrics in `results/` as unverified. The platform and Phase 3 models do
+not use this dataset.
 
 ---
 

@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RULES } from "./generated/psl-rules.js";
+import { PSL_COMMIT, RULES } from "./generated/psl-rules.js";
 import { PublicSuffixList } from "./psl.js";
-import { ERROR_MESSAGES, MAX_URL_LENGTH, dissect } from "./url-anatomy.js";
+import { detectIndicators } from "./indicators.js";
+import { readFileSync } from "node:fs";
+import { MAX_URL_LENGTH, dissect } from "./url-anatomy.js";
 
-const psl = new PublicSuffixList(RULES);
+const psl = new PublicSuffixList(RULES, PSL_COMMIT);
 const d = (raw) => dissect(raw, psl);
-const ids = (r) => r.observations.map((o) => o.id);
+// Findings come from the indicator rules, which read these facts.
+const findings = (r) => detectIndicators(r);
+const ids = (r) => findings(r).map((o) => o.id);
 
 // ------------------------------------------------------------ rejection policy
 for (const [raw, code] of [
@@ -40,7 +44,27 @@ for (const [raw, code] of [
     const r = d(raw);
     assert.equal(r.ok, false);
     assert.equal(r.code, code);
-    assert.equal(r.message, ERROR_MESSAGES[code]);
+    assert.ok(r.message);
+  });
+}
+
+// Cases shared with the Python validator (tests/test_url_parity_cases.py).
+// A `js` entry is an intentional, explained difference: hosts outside
+// IDNA2008 that some URL parsers accept. Where this runtime's parser rejects
+// one, the result must be Python's.
+const SHARED = JSON.parse(readFileSync(new URL("../../../tests/fixtures/url_cases.json", import.meta.url), "utf8")).cases;
+for (const c of SHARED) {
+  test(`shared case ${JSON.stringify(c.url).slice(0, 50)}`, () => {
+    const r = d(c.url);
+    const expected = c.js && r.ok ? c.js : c;
+    if (expected.error) {
+      assert.equal(r.code, expected.error);
+      return;
+    }
+    assert.equal(r.ok, true, r.code);
+    assert.equal(r.host, expected.host);
+    if ("idnaProblem" in expected) assert.equal(r.idnaProblem, expected.idnaProblem);
+    if ("ip_obfuscated" in c) assert.equal(r.rewritten, c.ip_obfuscated);
   });
 }
 
@@ -99,9 +123,7 @@ test("brand names left of the registrable domain are identified as subdomain", (
   assert.equal(r.registrableDomain, "account-verify.co.uk");
   assert.equal(r.subdomain, "login.paypal.com");
   assert.equal(r.subdomainLabels, 3);
-  const reg = r.observations.find((o) => o.id === "registrable");
-  assert.equal(reg.level, "notable");
-  assert.match(reg.title, /account-verify\.co\.uk/);
+  assert.ok(ids(r).includes("brand-in-subdomain"));
 });
 
 test("shared hosting platforms group by owner (private PSL section)", () => {
@@ -150,14 +172,20 @@ test("a plainly written IP is not called disguised; private ranges are explained
   const r = d("http://192.168.1.100/chase/login");
   assert.ok(ids(r).includes("ip-host"));
   assert.ok(!ids(r).includes("ip-disguised"));
-  assert.match(r.observations.find((o) => o.id === "ip-host").detail, /private/);
+  assert.match(findings(r).find((o) => o.id === "ip-host").detail, /private/);
 });
 
 test("IPv6 hosts are recognised", () => {
   const r = d("http://[::1]:8080/");
   assert.equal(r.isIp, true);
   assert.equal(r.ipVersion, 6);
-  assert.match(r.observations.find((o) => o.id === "ip-host").detail, /loopback/);
+  assert.match(findings(r).find((o) => o.id === "ip-host").detail, /loopback/);
+});
+
+test("IPv6 written in long or zero-padded form is notation, not a disguise", () => {
+  for (const raw of ["http://[0:0:0:0:0:0:0:1]/", "http://[2001:0db8::1]/"]) {
+    assert.ok(!ids(d(raw)).includes("ip-disguised"), raw);
+  }
 });
 
 test("punycode look-alike is decoded and mixed alphabets are flagged", () => {
@@ -186,10 +214,10 @@ test("trailing dot is tolerated and removed", () => {
   assert.equal(r.registrableDomain, "example.com");
 });
 
-test("an ordinary https URL produces no notable observations", () => {
+test("an ordinary https URL produces no notable findings", () => {
   const r = d("https://www.example.org/docs?page=2");
   assert.equal(r.ok, true);
-  assert.deepEqual(r.observations.filter((o) => o.level === "notable"), []);
+  assert.deepEqual(findings(r).filter((o) => o.severity !== "info" && o.severity !== "low"), []);
 });
 
 test("output never contains a verdict, score or probability field", () => {
@@ -197,7 +225,7 @@ test("output never contains a verdict, score or probability field", () => {
   for (const key of ["verdict", "score", "probability", "confidence", "risk", "safe", "malicious"]) {
     assert.ok(!(key in r), `unexpected field ${key}`);
   }
-  const text = r.observations.map((o) => `${o.title} ${o.detail}`).join(" ").toLowerCase();
+  const text = findings(r).map((o) => `${o.title} ${o.detail}`).join(" ").toLowerCase();
   for (const word of ["phishing detected", "is safe", "malicious", "% confidence"]) {
     assert.ok(!text.includes(word), `verdict-like wording: ${word}`);
   }

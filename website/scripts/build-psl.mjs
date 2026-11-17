@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const COMMIT = "3929462652695bad04f0a27afb600974014a3c8b";
 const SHA256 = "2919eb9803c91a3f73a507cc6fedc934de005543c22c4016f72e3343de5dd6e7";
 const URL_ = `https://raw.githubusercontent.com/publicsuffix/list/${COMMIT}/public_suffix_list.dat`;
-const OUT = fileURLToPath(new URL("../src/generated/psl-rules.js", import.meta.url));
+const OUT = fileURLToPath(new URL("../src/engine/generated/psl-rules.js", import.meta.url));
 
 const response = await fetch(URL_, { redirect: "error" });
 if (!response.ok) throw new Error(`download failed: HTTP ${response.status}`);

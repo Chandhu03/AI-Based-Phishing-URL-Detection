@@ -1,0 +1,131 @@
+/* Shared base: reset, type, controls, and the specimen (dissected URL). */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 var(--t-base) / 1.55 var(--font-sans);
+  font-feature-settings: "ss01" on;
+  -webkit-font-smoothing: antialiased;
+}
+img, svg { display: block; max-width: 100%; }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; line-height: 1.15; letter-spacing: -0.015em; text-wrap: balance; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+code, kbd, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+ul, ol { margin: 0; padding: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+::selection { background: var(--accent-soft); }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-1); }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip-link {
+  position: absolute; left: var(--s-3); top: -100px; z-index: 100; padding: var(--s-2) var(--s-4);
+  background: var(--ink); color: var(--bg); border-radius: var(--r-2); text-decoration: none; font-weight: 500;
+}
+.skip-link:focus { top: var(--s-3); }
+
+/* ---------------------------------------------------------------- controls */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  min-height: 40px; padding: 0 var(--s-4); border: 1px solid transparent; border-radius: var(--r-2);
+  font-weight: 500; font-size: var(--t-md); text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: color-mix(in oklab, var(--accent) 86%, var(--ink)); }
+.btn-secondary { background: var(--surface); border-color: var(--control-border); color: var(--ink); }
+.btn-secondary:hover { border-color: var(--ink-2); }
+.btn-quiet { background: transparent; color: var(--ink-2); padding: 0 var(--s-3); }
+.btn-quiet:hover { background: var(--surface-2); color: var(--ink); }
+.btn-danger { background: transparent; border-color: color-mix(in oklab, var(--risk-high) 50%, transparent); color: var(--risk-high); }
+.btn-danger:hover { background: var(--risk-high-soft); }
+.btn-sm { min-height: 32px; padding: 0 var(--s-3); font-size: var(--t-sm); }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+
+.input, .select, .textarea {
+  width: 100%; min-height: 40px; padding: var(--s-2) var(--s-3);
+  background: var(--surface); border: 1px solid var(--control-border); border-radius: var(--r-2);
+  font-size: var(--t-base);
+}
+.textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+.input:focus-visible, .select:focus-visible, .textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; border-color: var(--focus); }
+.input-mono { font-family: var(--font-mono); font-size: var(--t-md); }
+.input[aria-invalid="true"] { border-color: var(--risk-high); }
+.field { display: grid; gap: var(--s-1); }
+.field-label { font-size: var(--t-sm); font-weight: 500; color: var(--ink-2); }
+.field-hint { font-size: var(--t-sm); color: var(--muted); }
+.field-error { font-size: var(--t-sm); color: var(--risk-high); }
+
+/* ---------------------------------------------------------------- verdicts */
+.verdict {
+  display: inline-flex; align-items: center; gap: var(--s-2); padding: 3px 10px 3px 8px;
+  border-radius: 999px; font-size: var(--t-sm); font-weight: 500; white-space: nowrap;
+}
+.verdict::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.verdict[data-level="high-risk"] { color: var(--risk-high); background: var(--risk-high-soft); }
+.verdict[data-level="high-risk"]::before { transform: rotate(45deg); }
+.verdict[data-level="suspicious"] { color: var(--risk-sus); background: var(--risk-sus-soft); }
+.verdict[data-level="suspicious"]::before { clip-path: polygon(50% 0, 100% 100%, 0 100%); border-radius: 0; }
+.verdict[data-level="inconclusive"] { color: var(--risk-inc); background: var(--risk-inc-soft); }
+.verdict[data-level="inconclusive"]::before { border-radius: 50%; background: transparent; border: 2px solid currentColor; }
+.verdict[data-level="no-strong-indicators"] { color: var(--risk-low); background: var(--risk-low-soft); }
+.verdict[data-level="no-strong-indicators"]::before { border-radius: 50%; }
+
+.sev { display: inline-block; min-width: 4.5em; font-size: var(--t-xs); font-weight: 600; text-align: center; padding: 2px 6px; border-radius: var(--r-1); }
+.sev[data-sev="high"] { color: var(--risk-high); background: var(--risk-high-soft); }
+.sev[data-sev="medium"] { color: var(--risk-sus); background: var(--risk-sus-soft); }
+.sev[data-sev="low"] { color: var(--risk-inc); background: var(--risk-inc-soft); }
+.sev[data-sev="info"] { color: var(--muted); background: transparent; border: 1px solid var(--line); }
+
+/* ---------------------------------------------------------------- specimen
+   The URL as an exhibit: each part underlined in its role colour. */
+.specimen {
+  font-family: var(--font-mono); font-size: clamp(1rem, 0.85rem + 0.8vw, 1.5rem); line-height: 1.9;
+  word-break: break-all; overflow-wrap: anywhere; margin: 0;
+}
+.seg { padding-bottom: 2px; border-bottom: 3px solid transparent; }
+.seg-scheme { color: var(--seg-scheme); }
+.seg-credentials { color: var(--seg-cred); border-color: var(--seg-cred); }
+.seg-subdomain { color: var(--seg-sub); border-color: color-mix(in oklab, var(--seg-sub) 55%, transparent); }
+.seg-domain { color: var(--seg-domain); background: var(--seg-domain-bg); border-color: var(--seg-domain); font-weight: 500; }
+.seg-suffix { color: var(--seg-suffix); border-color: var(--seg-suffix); }
+.seg-port, .seg-path, .seg-query, .seg-fragment { color: var(--seg-path); }
+.seg-query, .seg-fragment { opacity: 0.8; }
+.specimen-key { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5); margin: var(--s-3) 0 0; padding: 0; list-style: none; font-size: var(--t-sm); color: var(--muted); }
+.specimen-key li { display: inline-flex; align-items: center; gap: var(--s-2); }
+.specimen-key i { display: inline-block; width: 18px; height: 3px; }
+.key-sub { background: var(--seg-sub); }
+.key-domain { background: var(--seg-domain-bg); outline: 1px solid var(--seg-domain); }
+.key-suffix { background: var(--seg-suffix); }
+.key-cred { background: var(--seg-cred); }
+
+/* ---------------------------------------------------------------- misc */
+.muted { color: var(--muted); }
+.stack > * + * { margin-top: var(--s-4); }
+.row { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.spacer { flex: 1; }
+.hr { border: 0; border-top: 1px solid var(--line); margin: var(--s-5) 0; }
+.tag { display: inline-block; padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: var(--t-xs); color: var(--ink-2); }
+.demo-flag { display: inline-block; padding: 1px 6px; border-radius: var(--r-1); font-size: var(--t-xs); font-weight: 600; color: var(--accent); background: var(--accent-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+
+.chips { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.chip { padding: 4px 10px; border: 1px solid var(--control-border); border-radius: 999px; background: transparent; color: var(--ink); font-size: var(--t-sm); cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip[disabled] { opacity: 0.5; cursor: wait; }
+
+.input::placeholder, .textarea::placeholder { color: var(--muted); opacity: 1; }
+/* Containers that receive focus only from script (page headings, new results)
+   are not controls; a focus ring around them reads as a selection box. */
+[tabindex="-1"]:focus-visible { outline: none; }
