@@ -55,6 +55,13 @@ body { font-size: var(--t-md); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--s-3); margin: 0; }
 .kpis div { min-width: 0; }
 .list-head .row .select { width: auto; min-width: 0; }
+.auth { display: flex; flex-wrap: wrap; gap: var(--s-2); list-style: none; padding: 0; margin: var(--s-4) 0 0; }
+.auth li { padding: 2px var(--s-2); border: 1px solid var(--line); border-radius: var(--r-1); font-size: var(--t-sm); }
+.auth li[data-level="ok"] { color: var(--risk-low); background: var(--risk-low-soft); }
+.auth li[data-level="bad"] { color: var(--risk-high); background: var(--risk-high-soft); }
+.auth li[data-level="unknown"] { color: var(--risk-inc); }
+details.panel > summary { cursor: pointer; font-weight: 600; }
+.facts.headers { margin-top: var(--s-3); font-size: var(--t-sm); }
 .kpis dt { font-size: var(--t-xs); color: var(--muted); }
 .kpis dd { margin: 0; font-size: var(--t-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
 
