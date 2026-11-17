@@ -118,7 +118,7 @@ test("overview counts come only from stored records", async () => {
   assert.equal(Object.values(o.byVerdict).reduce((x, y) => x + y, 0), o.recentAnalyses);
   await ws.removeDemoData();
   o = await ws.overview();
-  assert.deepEqual(o.totals, { analyses: 0, investigations: 0, indicators: 0 });
+  assert.deepEqual(o.totals, { analyses: 0, investigations: 0, indicators: 0, alerts: 0 });
 });
 
 const reanalyze = (url, at) => analyzeUrl(url, { psl, now: () => new Date(at) });

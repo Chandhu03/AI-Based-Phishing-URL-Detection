@@ -111,7 +111,7 @@ export function Settings() {
       // Analyses are re-run by the current engine; nothing in the file is trusted as-is.
       const { importBackup, parseBackupInChunks } = await io();
       const parsed = await parseBackupInChunks(await readFile(file, MAX_IMPORT_BYTES), (url, at) => engine.analyzeAt(url, at),
-        (done, total) => setRestoring(`Re-checking analyses: ${done.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}…`));
+        (done, total, store) => setRestoring(`Re-checking ${store}: ${done.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}…`));
       setRestoring("Saving…");
       // One transaction: a failure here leaves the workspace exactly as it was.
       const c = await act(() => ws.exclusive((store) => importBackup(store, parsed)));
@@ -150,7 +150,7 @@ export function Settings() {
             {persisted === false && <button type="button" class="btn btn-secondary btn-sm" onClick={async () => setPersisted(await navigator.storage.persist())}>Ask to keep data</button>}
             <button type="button" class="btn btn-secondary btn-sm" onClick={async () => download(`securemind-workspace-${stamp()}.json`, JSON.stringify(await (await io()).exportBackup(ws.store)), "application/json")}>Export backup</button>
             <label class="btn btn-secondary btn-sm file-btn" aria-disabled={restoring !== null ? "true" : undefined}>
-              Restore backup<input type="file" accept=".json,application/json" onChange={restore} disabled={restoring !== null} />
+              Restore backup<input type="file" name="backup-file" accept=".json,application/json" onChange={restore} disabled={restoring !== null} />
             </label>
           </div>
           <p class="field-hint" role="status">{restoring ?? ""}</p>

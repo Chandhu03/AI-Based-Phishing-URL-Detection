@@ -8,6 +8,7 @@ import { createIdbStore, createMemoryStore } from "../workspace/stores.js";
 import { createWorkspace } from "../workspace/workspace.js";
 import { PageHeader } from "./components.jsx";
 import { AppContext } from "./context.js";
+import { AlertDetail, Alerts } from "./pages/alerts.jsx";
 import { Analyses } from "./pages/analyses.jsx";
 import { Analyze, AnalysisDetail } from "./pages/analyze.jsx";
 import { Indicators } from "./pages/indicators.jsx";
@@ -23,6 +24,8 @@ applyTheme(readTheme());
 function Page({ route }) {
   switch (route.name) {
     case "overview": return <Overview />;
+    case "alerts": return <Alerts />;
+    case "alert": return <AlertDetail id={route.id} />;
     case "analyze": return <Analyze />;
     case "analyses": return <Analyses />;
     case "analysis": return <AnalysisDetail id={route.id} />;
@@ -108,16 +111,32 @@ function stylesheetsReady() {
   })));
 }
 
+/** Replace the app with one message; used when the workspace database cannot be used in this tab. */
+function Notice({ text, reload = false }) {
+  return (
+    <div class="banner banner-error" role="alert">
+      <p>{text}</p>
+      {reload && <button type="button" class="btn btn-secondary btn-sm" onClick={() => location.reload()}>Reload</button>}
+    </div>
+  );
+}
+
 async function start() {
   await stylesheetsReady();
+  const root = document.getElementById("app");
   let store;
   try {
-    store = await createIdbStore();
+    store = await createIdbStore({
+      // Another tab still has the previous workspace version open; the upgrade waits for it.
+      onBlocked: () => render(<Notice text="The workspace is being updated. Close other SecureMind workspace tabs to continue." />, root),
+      // A newer version opened in another tab; this tab's connection is closed, so its changes would fail.
+      onVersionChange: () => render(<Notice text="The workspace was updated in another tab. Reload this page to keep working." reload />, root),
+    });
   } catch {
     store = createMemoryStore();
   }
   const ws = createWorkspace(store);
-  render(<App ws={ws} storageKind={store.kind} />, document.getElementById("app"));
+  render(<App ws={ws} storageKind={store.kind} />, root);
 }
 
 start();

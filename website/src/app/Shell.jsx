@@ -3,13 +3,14 @@ import { useApp } from "./context.js";
 
 const NAV = [
   ["overview", "Overview", "#/overview", "M3 3h6v6H3zM11 3h6v4h-6zM11 9h6v8h-6zM3 11h6v6H3z"],
+  ["alerts", "Alert queue", "#/alerts", "M10 3a5 5 0 0 1 5 5v3l2 3H3l2-3V8a5 5 0 0 1 5-5zM8 17h4"],
   ["analyze", "Analyse", "#/analyze", "M8.5 3a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM12.5 12.5 17 17"],
   ["analyses", "Analyses", "#/analyses", "M4 4h12M4 8h12M4 12h8M4 16h6M15 13l2 2 3-4"],
   ["investigations", "Investigations", "#/investigations", "M4 3h9l3 3v11H4zM7 8h6M7 11h6M7 14h4"],
   ["indicators", "Indicators", "#/indicators", "M3 10h4l2-6 3 12 2-6h3"],
   ["engine", "Detection engine", "#/engine", "M10 3v3M10 14v3M3 10h3M14 10h3M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"],
 ];
-const ACTIVE = { analysis: "analyses", investigation: "investigations" };
+const ACTIVE = { analysis: "analyses", investigation: "investigations", alert: "alerts" };
 
 function Mark() {
   return (

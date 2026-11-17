@@ -1,4 +1,5 @@
 import { useState } from "preact/hooks";
+import { defang } from "../../engine/defang.js";
 import { DayColumns, VerdictBars } from "../charts.jsx";
 import { Empty, PageHeader, Time, Verdict } from "../components.jsx";
 import { useAction, useApp, useData } from "../context.js";
@@ -36,7 +37,7 @@ export function Overview() {
   }
 
   if (!o) return <PageHeader title="Overview" />;
-  const empty = o.totals.analyses === 0 && o.totals.investigations === 0 && o.totals.indicators === 0;
+  const empty = Object.values(o.totals).every((n) => n === 0);
 
   return (
     <>
@@ -105,6 +106,26 @@ export function Overview() {
           </section>
           </div>
           <div class="overview-side">
+          <section class="panel" aria-labelledby="q-title">
+            <div class="panel-head">
+              <h2 id="q-title" class="section-title">Alert queue</h2>
+              <a href="#/alerts">Open the queue</a>
+            </div>
+            {o.openAlerts.length === 0 ? <p class="muted">No open alerts.</p> : (
+              <>
+                <p class="figure">{o.openAlerts.length}<span> open</span></p>
+                <ul class="list">
+                  {o.openAlerts.slice(0, 5).map((a) => (
+                    <li key={a.id}>
+                      <span class="prio" data-prio={a.severity}>{a.severity}</span>
+                      <a href={`#/alerts/${a.id}`} class="list-main mono">{defang(a.host)}</a>
+                      <span class="muted">{a.occurrences}×</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
           <section class="panel" aria-labelledby="c-title">
             <div class="panel-head">
               <h2 id="c-title" class="section-title">Open investigations</h2>

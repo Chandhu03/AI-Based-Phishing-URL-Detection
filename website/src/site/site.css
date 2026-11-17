@@ -55,7 +55,7 @@
 .section { padding: clamp(56px, 8vw, 104px) 0; border-top: 1px solid var(--line); }
 .section-head { margin-bottom: var(--s-6); }
 .capabilities { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--s-5); }
-.cap { grid-column: span 4; display: grid; gap: var(--s-3); align-content: start; }
+.cap { grid-column: span 6; display: grid; gap: var(--s-3); align-content: start; }
 .cap h3 { font-size: var(--t-lg); }
 .cap p { color: var(--ink-2); }
 .cap-figure { margin: 0; padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-3); background: var(--surface); font-size: var(--t-sm); min-height: 168px; }

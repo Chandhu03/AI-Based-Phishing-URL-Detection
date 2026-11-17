@@ -52,6 +52,11 @@ body { font-size: var(--t-md); }
 .panel-danger { border-color: color-mix(in oklab, var(--risk-high) 40%, var(--line)); }
 .figure { font-size: var(--t-xl); font-weight: 600; font-variant-numeric: tabular-nums; }
 .figure span { font-size: var(--t-sm); font-weight: 400; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--s-3); margin: 0; }
+.kpis div { min-width: 0; }
+.list-head .row .select { width: auto; min-width: 0; }
+.kpis dt { font-size: var(--t-xs); color: var(--muted); }
+.kpis dd { margin: 0; font-size: var(--t-lg); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .overview-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s-4); align-items: start; }
 .overview-main, .overview-side { display: grid; gap: var(--s-4); min-width: 0; }

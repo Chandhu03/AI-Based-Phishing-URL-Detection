@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SecureMind Labs — Phishing-link investigation that stays in your browser</title>
-    <meta name="description" content="Analyse suspicious links, run investigations and track indicators in a local-first workspace. Links are never fetched or sent; every verdict shows its evidence." />
+    <meta name="description" content="Triage reported links, analyse them with evidence, run investigations and track indicators in a local-first workspace. Links are never fetched or sent; every verdict shows its evidence." />
     <link rel="canonical" href="https://securemindlabs.com/" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/src/site/styles.css" />
@@ -12,7 +12,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SecureMind Labs" />
     <meta property="og:title" content="SecureMind Labs — Phishing-link investigation that stays in your browser" />
-    <meta property="og:description" content="Take a suspicious link apart before anyone clicks it. Evidence-first analysis, investigations and indicators, all local." />
+    <meta property="og:description" content="Take a suspicious link apart before anyone clicks it. An alert queue, evidence-first analysis, investigations and indicators, all local." />
     <meta property="og:url" content="https://securemindlabs.com/" />
     <meta property="og:image" content="https://securemindlabs.com/og.png" />
     <meta property="og:image:width" content="1200" />
@@ -92,9 +92,20 @@
         <div class="wrap">
           <div class="section-head">
             <h2 id="platform-title" class="h2">From one link to a documented case.</h2>
-            <p class="section-intro">The workspace connects three jobs that usually live in separate tools. Each one works today, in your browser, with nothing to install.</p>
+            <p class="section-intro">The workspace connects four jobs that usually live in separate tools. Each one works today, in your browser, with nothing to install.</p>
           </div>
           <div class="capabilities">
+            <article class="cap">
+              <figure class="cap-figure" aria-hidden="true">
+                <table class="mini-table">
+                  <tr><td>high</td><td>paypal[.]com[.]secure-account[.]tk</td><td>14×</td></tr>
+                  <tr><td>medium</td><td>paypa1[.]com/signin</td><td>3×</td></tr>
+                  <tr><td>low</td><td>example[.]org/docs</td><td>closed</td></tr>
+                </table>
+              </figure>
+              <h3>Triage reported links</h3>
+              <p>Paste or import links reported by staff, a mail filter or a SIEM export. Repeats fold into one alert; each is closed with a disposition or escalated to a case, and the queue shows median time to triage and to close.</p>
+            </article>
             <article class="cap">
               <figure class="cap-figure" aria-hidden="true">
                 <span class="verdict" data-level="suspicious">Suspicious</span>
@@ -143,7 +154,7 @@
               <text x="30" y="50" class="bd-title">Your browser</text>
               <rect x="30" y="70" width="160" height="56" rx="8" class="bd-box"/><text x="44" y="94" class="bd-text">Parser and PSL</text><text x="44" y="112" class="bd-sub">who owns the domain</text>
               <rect x="210" y="70" width="160" height="56" rx="8" class="bd-box"/><text x="224" y="94" class="bd-text">Rules and model</text><text x="224" y="112" class="bd-sub">evidence and estimate</text>
-              <rect x="30" y="150" width="340" height="56" rx="8" class="bd-box"/><text x="44" y="174" class="bd-text">Workspace (IndexedDB)</text><text x="44" y="192" class="bd-sub">analyses, investigations, indicators</text>
+              <rect x="30" y="150" width="340" height="56" rx="8" class="bd-box"/><text x="44" y="174" class="bd-text">Workspace (IndexedDB)</text><text x="44" y="192" class="bd-sub">alerts, analyses, cases, indicators</text>
               <path d="M110 126v24M290 126v24" class="bd-line"/>
               <text x="30" y="250" class="bd-sub">Exports are files you choose to save.</text>
               <path d="M420 40v240" class="bd-cut"/>
