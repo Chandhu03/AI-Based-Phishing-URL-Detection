@@ -11,6 +11,7 @@ import { AppContext } from "./context.js";
 import { AlertDetail, Alerts } from "./pages/alerts.jsx";
 import { Analyses } from "./pages/analyses.jsx";
 import { Email } from "./pages/email.jsx";
+import { Reports } from "./pages/reports.jsx";
 import { Rules } from "./pages/rules.jsx";
 import { Analyze, AnalysisDetail } from "./pages/analyze.jsx";
 import { Indicators } from "./pages/indicators.jsx";
@@ -36,6 +37,7 @@ function Page({ route }) {
     case "investigations": return <Investigations />;
     case "investigation": return <InvestigationDetail id={route.id} />;
     case "indicators": return <Indicators />;
+    case "reports": return <Reports />;
     case "engine": return <Engine />;
     case "settings": return <Settings />;
     default: return <PageHeader title="Page not found" description="That workspace page does not exist." />;

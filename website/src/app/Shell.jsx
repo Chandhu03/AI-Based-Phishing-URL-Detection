@@ -9,6 +9,7 @@ const NAV = [
   ["analyses", "Analyses", "#/analyses", "M4 4h12M4 8h12M4 12h8M4 16h6M15 13l2 2 3-4"],
   ["investigations", "Investigations", "#/investigations", "M4 3h9l3 3v11H4zM7 8h6M7 11h6M7 14h4"],
   ["indicators", "Indicators", "#/indicators", "M3 10h4l2-6 3 12 2-6h3"],
+  ["reports", "Reports", "#/reports", "M4 16V9M8 16V5M12 16v-4M16 16V7M3 16h14"],
   ["engine", "Detection engine", "#/engine", "M10 3v3M10 14v3M3 10h3M14 10h3M10 7a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"],
 ];
 const ACTIVE = { analysis: "analyses", investigation: "investigations", alert: "alerts", rules: "alerts" };

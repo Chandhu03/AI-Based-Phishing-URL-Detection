@@ -814,6 +814,59 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
     async activity(limit = 20) {
       return (await intactList("activity")).sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
     },
+    /**
+     * A period report for the last `days`: alert intake and outcomes, response
+     * times, top lure domains, case and checklist progress, indicators. Every
+     * figure is computed from stored records; nothing is estimated.
+     */
+    async report({ days = 7 } = {}) {
+      if (!Number.isInteger(days) || days < 1 || days > 366) throw new WorkspaceError("a report covers 1 to 366 days");
+      const until = now().toISOString();
+      const since = new Date(now().getTime() - days * 864e5).toISOString();
+      const inWindow = (t) => t && t >= since && t <= until;
+      const [alerts, investigations, indicators, analyses] = await Promise.all(["alerts", "investigations", "indicators", "analyses"].map(intactList));
+      const queued = alerts.filter((a) => inWindow(a.createdAt));
+      const count = (list, key) => list.reduce((m, x) => ((m[key(x)] = (m[key(x)] ?? 0) + 1), m), {});
+      const lures = {};
+      for (const a of queued) {
+        if (a.verdict !== "high-risk" && a.verdict !== "suspicious") continue;
+        const d = a.registrableDomain ?? a.host;
+        lures[d] ??= { domain: d, alerts: 0, reports: 0 };
+        lures[d].alerts += 1;
+        lures[d].reports += a.occurrences;
+      }
+      const statusChanges = investigations.flatMap((i) => i.history.filter((h) => h.action === "status" && inWindow(h.at)).map((h) => ({ i, to: h.detail.split("→").pop().trim() })));
+      const open = investigations.filter((i) => i.status !== "closed");
+      const tasks = open.flatMap((i) => i.tasks ?? []);
+      const findings = {};
+      for (const a of analyses.filter((x) => inWindow(x.createdAt))) {
+        for (const ind of a.report.indicators) if (ind.severity !== "info") findings[ind.id] = (findings[ind.id] ?? 0) + 1;
+      }
+      return {
+        days, since, until,
+        alerts: {
+          queued: queued.length,
+          reports: queued.reduce((n, a) => n + a.occurrences, 0),
+          bySource: count(queued, (a) => a.source),
+          byVerdict: count(queued, (a) => a.verdict),
+          escalated: alerts.filter((a) => a.history.some((h) => h.action === "escalated" && inWindow(h.at))).length,
+          metrics: await api.alertMetrics({ days }),
+        },
+        topLures: Object.values(lures).sort((a, b) => b.reports - a.reports || b.alerts - a.alerts || a.domain.localeCompare(b.domain)).slice(0, 10),
+        investigations: {
+          opened: investigations.filter((i) => inWindow(i.createdAt)).length,
+          closed: new Set(statusChanges.filter((c) => c.to === "closed").map((c) => c.i.id)).size,
+          open: open.length,
+          openByPriority: Object.fromEntries(PRIORITIES.map((p) => [p, open.filter((i) => i.priority === p).length])),
+          checklist: { done: tasks.filter((t) => t.done).length, total: tasks.length },
+        },
+        indicators: {
+          recorded: indicators.filter((i) => inWindow(i.firstSeen)).length,
+          byType: Object.fromEntries(INDICATOR_TYPES.map((t) => [t, indicators.filter((i) => i.type === t && inWindow(i.firstSeen)).length])),
+        },
+        topFindings: Object.entries(findings).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 8),
+      };
+    },
     async overview({ days = 30 } = {}) {
       const since = new Date(now().getTime() - days * 864e5).toISOString();
       const [analyses, investigations, indicators, alerts] = await Promise.all(STORES_FOR_OVERVIEW.map(intactList));

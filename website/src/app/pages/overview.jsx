@@ -4,17 +4,8 @@ import { DayColumns, VerdictBars } from "../charts.jsx";
 import { Empty, PageHeader, Time, Verdict } from "../components.jsx";
 import { useAction, useApp, useData } from "../context.js";
 import { QuickAnalyze } from "./analyze.jsx";
+import { FINDING_NAMES } from "../../engine/finding-names.js";
 
-const FINDING_NAMES = {
-  "brand-in-subdomain": "Brand in a subdomain", "brand-in-domain": "Brand combined with other words", homograph: "Look-alike characters",
-  typosquat: "Near-miss spelling", credentials: "Hidden login text", "ip-host": "Raw IP host", "ip-disguised": "Disguised IP",
-  "embedded-url": "Embedded address", "domain-in-subdomain": "Domain inside subdomain", "http-credential-path": "Sign-in path over http",
-  download: "Downloadable file", shortener: "Link shortener", "shared-hosting": "Shared hosting", "free-tld": "Free-registration TLD",
-  "host-keywords": "Account words in domain", "mixed-script": "Mixed alphabets", idn: "International characters",
-  "brand-unlisted-domain": "Brand on unlisted domain", "brand-in-path": "Brand in path", "deep-subdomain": "Deep subdomain",
-  "host-rewritten": "Rewritten host", port: "Non-standard port", "path-tricks": "Path tricks", "heavy-encoding": "Heavy encoding",
-  "hyphenated-domain": "Hyphenated domain",
-};
 const TYPE_NAMES = {
   url: ["URL", "URLs"], domain: ["domain", "domains"], hostname: ["host name", "host names"],
   ipv4: ["IPv4 address", "IPv4 addresses"], ipv6: ["IPv6 address", "IPv6 addresses"],
