@@ -4,6 +4,7 @@
 
 import { defang, refang } from "../engine/defang.js";
 import { LIMITS as VERDICT_LIMITS } from "../engine/verdict.js";
+import { playbookById } from "./playbooks.js";
 import { STORES } from "./stores.js";
 import { ALERT_STATUSES, classifyIndicator, CONFIDENCE, DISPOSITIONS, INDICATOR_TYPES, INVESTIGATION_STATUSES, isIntact, LIMITS, MAX_IMPORT_BYTES, normalizeIndicator, normalizeTags, PRIORITIES } from "./workspace.js";
 
@@ -69,9 +70,17 @@ const REBUILD = {
     const history = (Array.isArray(r.history) ? r.history : []).slice(0, 5000)
       .map((h) => ({ at: iso(h?.at), action: str(h?.action, 40), detail: str(h?.detail, 300) }))
       .filter((h) => h.at && HISTORY_ACTIONS.has(h.action));
+    // Checklist steps: over-long or malformed steps are dropped, never cut.
+    const tasks = (Array.isArray(r.tasks) ? r.tasks : []).slice(0, LIMITS.tasks)
+      .filter((t, i, all) => t && ID.test(t.id) && typeof t.text === "string" && t.text.trim() && t.text.length <= LIMITS.task
+        && typeof t.done === "boolean" && all.findIndex((x) => x?.id === t.id) === i)
+      .map((t) => ({
+        id: t.id, text: str(t.text, LIMITS.task).trim(), done: t.done, doneAt: t.done ? iso(t.doneAt) : null,
+        playbook: playbookById(t.playbook) ? t.playbook : null,
+      }));
     return {
       id: r.id, title, summary: str(r.summary, 4000), status: r.status, priority: r.priority, tags: normalizeTags(Array.isArray(r.tags) ? r.tags.filter((t) => typeof t === "string") : []),
-      notes, history, analysisIds: ids(r.analysisIds), indicatorIds: ids(r.indicatorIds, INDICATOR_ID),
+      notes, tasks, history, analysisIds: ids(r.analysisIds), indicatorIds: ids(r.indicatorIds, INDICATOR_ID),
       demo: r.demo === true, createdAt, updatedAt,
     };
   },
@@ -117,7 +126,7 @@ const REBUILD = {
     };
   },
 };
-const HISTORY_ACTIONS = new Set(["created", "renamed", "summary", "status", "priority", "tags", "note", "note-removed", "linked", "unlinked", "indicator", "alert"]);
+const HISTORY_ACTIONS = new Set(["created", "renamed", "summary", "status", "priority", "tags", "note", "note-removed", "linked", "unlinked", "indicator", "alert", "playbook", "task"]);
 const ALERT_HISTORY_ACTIONS = new Set(["created", "repeat", "triage", "severity", "closed", "reopened", "escalated", "unlinked"]);
 // The longest detail written: a close with a 1,000-character comment.
 const ALERT_HISTORY_DETAIL = 1100;
@@ -589,6 +598,11 @@ export function investigationToMarkdown(inv, analyses, indicators, now = new Dat
       "| --- | --- | --- | --- | --- | --- | --- |",
       ...indicators.map((x) => `| ${x.type} | ${cell(code(defang(x.value)))} | ${x.confidence} | ${x.sightings} | ${x.firstSeen} | ${x.lastSeen} | ${x.tags.map(md).join(", ") || "—"} |`),
     ] : ["- None recorded."]),
+    "",
+    "## Response checklist",
+    ...((inv.tasks ?? []).length
+      ? [`${inv.tasks.filter((t) => t.done).length} of ${inv.tasks.length} steps done.`, "", ...inv.tasks.map((t) => `- [${t.done ? "x" : " "}] ${md(t.text)}${t.done && t.doneAt ? ` (done ${t.doneAt})` : ""}`)]
+      : ["_No checklist._"]),
     "",
     "## Notes",
     ...(inv.notes.length ? inv.notes.flatMap((n) => [`### ${n.at}`, "", md(n.body), ""]) : ["_No notes._", ""]),

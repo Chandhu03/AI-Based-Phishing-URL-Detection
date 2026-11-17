@@ -154,6 +154,15 @@ test("with data, workspace pages do not scroll sideways at 320px", async ({ page
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(width, route).toBeLessThanOrEqual(320);
   }
+  // Detail pages carry the widest controls (playbook select, decision forms).
+  for (const list of ["#/investigations", "#/alerts"]) {
+    await page.goto(`/app/${list}`);
+    if (list === "#/alerts") await page.getByRole("combobox", { name: "Status", exact: true }).selectOption("");
+    await page.locator("tbody a").first().click();
+    await expect(page.locator("[data-page-title]")).not.toHaveText(/^(Investigations|Alert queue)$/);
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width, `${list} details`).toBeLessThanOrEqual(320);
+  }
 });
 
 test("keyboard focus lands on the new content after actions that replace the trigger", async ({ page }) => {
@@ -433,4 +442,30 @@ test("reported email: input that is not a message is rejected with a reason", as
   await page.getByLabel("Or paste the message source (headers and body)").fill("just some words");
   await page.getByRole("button", { name: "Analyse message" }).click();
   await expect(page.locator("#em-error")).toContainText("does not look like an email message");
+});
+
+test("response checklist: apply a playbook, tick and add steps; it persists and shows progress", async ({ page }) => {
+  const w = watch(page);
+  await page.goto("/app/#/investigations");
+  await page.getByRole("button", { name: "New investigation" }).click();
+  await page.getByRole("dialog").getByLabel("Title").fill("Payroll lure");
+  await page.getByRole("dialog").getByRole("button", { name: "Create investigation" }).click();
+  await expect(page.locator("[data-page-title]")).toHaveText("Payroll lure");
+  await page.getByLabel("Playbook").selectOption("credential-phishing");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  const steps = page.locator(".checklist li");
+  await expect(steps).toHaveCount(7);
+  await steps.first().getByRole("checkbox").check();
+  await expect(page.locator("#ck-title .count")).toHaveText("1/7");
+  await page.getByLabel("New step").fill("Ask payroll to confirm no account changes");
+  await page.getByRole("button", { name: "Add step" }).click();
+  await expect(steps).toHaveCount(8);
+  await expect(page.getByLabel("New step")).toBeFocused();
+  await page.reload();
+  await expect(page.locator(".checklist li")).toHaveCount(8);
+  await expect(page.locator(".checklist li").first().getByRole("checkbox")).toBeChecked();
+  await expect(page.locator(".timeline")).toContainText("Credential phishing: 7 steps added");
+  await page.goto("/app/#/investigations");
+  await expect(page.locator("tbody tr").first()).toContainText("1/8");
+  expect(w.errors).toEqual([]);
 });

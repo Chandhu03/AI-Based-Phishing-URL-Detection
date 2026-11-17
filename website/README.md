@@ -45,7 +45,9 @@ and reporting all run in the visitor's browser.
 - **Analyses.** Every saved analysis with search (link or host), a verdict
   filter, pages of 25 and bulk deletion that also removes links to it.
 - **Investigations.** Status, priority, tags, notes, linked analyses and
-  indicators, a full history, and a Markdown case report (each analysis with
+  indicators, a response checklist (playbooks for credential phishing,
+  malware delivery, payment fraud and brand impersonation, plus the
+  analyst's own steps, at most 100), a full history, and a Markdown case report (each analysis with
   its evidence, an indicator table, notes, history, and the engine, model and
   Public Suffix List versions used; URLs defanged).
 - **Indicators.** URL, domain, hostname, IPv4 and IPv6 with confidence,
