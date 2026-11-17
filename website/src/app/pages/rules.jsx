@@ -6,6 +6,11 @@ import { useAction, useApp, useData } from "../context.js";
 
 const FIELD_LABEL = { url: "URL is exactly", host: "Host is exactly", domain: "Registrable domain is", source: "Source is" };
 const DISPOSITION_LABEL = { benign: "benign", "false-positive": "false positive", duplicate: "duplicate" };
+/** A rule name for a suggested host, within the name limit (an ellipsis marks a shortened host). */
+const suggestionName = (host) => {
+  const name = `Known good: ${host}`;
+  return name.length <= LIMITS.ruleName ? name : `${name.slice(0, LIMITS.ruleName - 1)}…`;
+};
 const describeAction = (a) => (a.type === "close" ? `Close as ${DISPOSITION_LABEL[a.disposition]}` : `Set severity to ${a.severity}`);
 
 /** Queue rules: exact-match automation applied once, when an alert is queued. */
@@ -13,6 +18,7 @@ export function Rules() {
   const { ws } = useApp();
   const act = useAction();
   const { data: rules = [] } = useData(() => ws.listRules());
+  const { data: suggestions = [] } = useData(() => ws.ruleSuggestions());
   const [form, setForm] = useState({ name: "", field: "host", value: "", action: "close", disposition: "benign", severity: "high" });
   const set = (k) => (e) => setForm({ ...form, [k]: e.currentTarget.value });
   const shared = form.action === "close" && form.field === "domain" && SHARED_DOMAINS.includes(form.value.trim().toLowerCase().replace(/\.$/, ""));
@@ -72,6 +78,24 @@ export function Rules() {
           <div class="row"><button class="btn btn-primary" type="submit" disabled={shared}>Add rule</button></div>
         </form>
       </section>
+
+      {suggestions.length > 0 && (
+        <section class="panel stack" aria-labelledby="rule-suggest">
+          <h2 id="rule-suggest" class="section-title">Suggested from your closes</h2>
+          <p class="muted small">Hosts that analysts closed as benign, false positive or duplicate more than once, never judged high risk or suspicious. A host rule closes only that exact host. Nothing is added until you choose to.</p>
+          <ul class="list">
+            {suggestions.map((sg) => (
+              <li key={sg.host}>
+                <code class="list-main">{defang(sg.host)}</code>
+                <span class="muted">closed {sg.alerts}× as {DISPOSITION_LABEL[sg.disposition]}</span>
+                <button type="button" class="btn btn-secondary btn-sm" onClick={() => act(() => ws.createRule({
+                  name: suggestionName(sg.host), field: "host", value: sg.host, action: "close", disposition: sg.disposition,
+                }), "Rule added.")}>Add rule<span class="visually-hidden"> for {defang(sg.host)}</span></button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {rules.length === 0 ? (
         <Empty title="No queue rules yet."><p>Every alert waits for an analyst until you add one.</p></Empty>

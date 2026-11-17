@@ -555,3 +555,55 @@ test("reports: the demo period is summarised, and both exports are defanged", as
   expect(csv).not.toMatch(live);
   expect(w.errors).toEqual([]);
 });
+
+test("faster triage: step to the next open alert, then accept a suggested rule from repeated closes", async ({ page }) => {
+  const w = watch(page);
+  await page.goto("/app/#/alerts");
+  await page.getByRole("button", { name: "Add alerts" }).click();
+  await page.getByRole("dialog").getByLabel("Reported links, one per line").fill(["https://news.vendor.example/a", "https://news.vendor.example/b", "https://paypa1.com/signin"].join("\n"));
+  await page.getByRole("dialog").getByRole("button", { name: "Queue alerts" }).click();
+  await expect(page.locator("#alert-status")).toHaveText("Showing 1–3 of 3");
+
+  // Work the queue from the first alert using "Next open alert".
+  await page.locator("tbody tr").first().getByRole("link").click();
+  // Two alerts share a host, so compare ids in the address, not titles.
+  const seen = [];
+  for (let i = 0; i < 3; i++) {
+    await expect(page.locator("[data-page-title]")).toHaveText(/^Alert: /);
+    const here = new URL(page.url()).hash;
+    seen.push(here);
+    if (i === 2) break;
+    const next = page.getByRole("link", { name: /^Next open alert/ });
+    const target = await next.getAttribute("href");
+    expect(target).not.toBe(here);
+    await next.click();
+    await expect(page).toHaveURL((u) => u.hash === target);
+    // The address changes before React re-renders: wait until the page is the new alert's (its own link points elsewhere).
+    await expect(page.getByRole("link", { name: /^Next open alert/ }).or(page.getByText("No other open alerts"))).not.toHaveAttribute("href", target);
+  }
+  expect(new Set(seen).size).toBe(3);
+
+  // Close the two vendor alerts as benign.
+  await page.goto("/app/#/alerts");
+  await page.getByRole("searchbox", { name: "Search" }).fill("news.vendor");
+  await expect(page.locator("#alert-status")).toHaveText("Showing 1–2 of 2");
+  await page.getByLabel("Select page").check();
+  await page.getByLabel("Disposition").selectOption("benign");
+  await page.getByRole("button", { name: "Close selected" }).click();
+  await expect(page.getByText("No alerts match these filters.")).toBeVisible();
+
+  await page.goto("/app/#/alerts/rules");
+  const suggestion = page.locator('[aria-labelledby="rule-suggest"] li');
+  await expect(suggestion).toHaveCount(1);
+  await expect(suggestion).toContainText("news[.]vendor[.]example");
+  await suggestion.getByRole("button", { name: /^Add rule/ }).click();
+  await expect(page.locator('[aria-labelledby="rule-list"] tbody tr')).toContainText("Known good: news.vendor.example");
+  await expect(page.locator('[aria-labelledby="rule-suggest"]')).toHaveCount(0);
+
+  // The remaining alert has nothing after it.
+  await page.goto("/app/#/alerts");
+  await page.getByRole("searchbox", { name: "Search" }).fill("");
+  await page.locator("tbody tr").first().getByRole("link").click();
+  await expect(page.getByText("No other open alerts")).toBeVisible();
+  expect(w.errors).toEqual([]);
+});

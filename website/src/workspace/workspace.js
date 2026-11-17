@@ -672,6 +672,30 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
     }),
     /** Rules in the order they are tried (oldest first). */
     listRules: async () => (await intactList("rules")).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    /**
+     * Hosts that analysts closed as benign or false positive at least
+     * `minimum` times (separate alerts), never judged high risk or suspicious
+     * and not yet covered by a host or domain rule. Suggestions only:
+     * nothing is created until the analyst confirms.
+     */
+    async ruleSuggestions({ minimum = 2 } = {}) {
+      const [alerts, rules] = await Promise.all([intactList("alerts"), intactList("rules")]);
+      const covered = new Set(rules.flatMap((r) => (r.match.field === "host" || r.match.field === "domain" ? [`${r.match.field}:${r.match.value}`] : [])));
+      const byHost = new Map();
+      const risky = new Set(alerts.filter((a) => a.verdict === "high-risk" || a.verdict === "suspicious").map((a) => a.host));
+      for (const a of alerts) {
+        if (a.status !== "closed" || a.closedByRule || !RULE_DISPOSITIONS.includes(a.disposition)) continue;
+        if (risky.has(a.host) || covered.has(`host:${a.host}`) || covered.has(`domain:${a.registrableDomain}`)) continue;
+        const e = byHost.get(a.host) ?? { host: a.host, alerts: 0, dispositions: {} };
+        e.alerts += 1;
+        e.dispositions[a.disposition] = (e.dispositions[a.disposition] ?? 0) + 1;
+        byHost.set(a.host, e);
+      }
+      return [...byHost.values()].filter((e) => e.alerts >= minimum)
+        .map((e) => ({ host: e.host, alerts: e.alerts, disposition: Object.entries(e.dispositions).sort((a, b) => b[1] - a[1])[0][0] }))
+        .sort((a, b) => b.alerts - a.alerts || a.host.localeCompare(b.host))
+        .slice(0, 10);
+    },
 
     // ------------------------------------------------------------ alert queue
     /**
@@ -784,6 +808,14 @@ export function createWorkspace(store, { now = () => new Date(), newId = () => c
       return limit === undefined ? all : pageOf(all, offset, limit);
     },
     getAlert: (id) => must("alerts", id),
+    /** The next open alert in queue order after this one (wrapping), or null when no other is open. */
+    async nextOpenAlert(id) {
+      const open = await api.listAlerts({ status: "open" });
+      if (!open.length) return null;
+      const i = open.findIndex((a) => a.id === id);
+      const next = i === -1 ? open[0] : open[(i + 1) % open.length];
+      return next.id === id ? null : next;
+    },
     /** Queue health for the last `days`: backlog, dispositions, and median times to triage and to close (ms). */
     async alertMetrics({ days = 30 } = {}) {
       const since = new Date(now().getTime() - days * 864e5).toISOString();
