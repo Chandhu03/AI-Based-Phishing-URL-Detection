@@ -297,6 +297,8 @@ test("alert queue: intake folds repeats, triage, close with a disposition, escal
 
   // Close the ordinary link as a false positive from its details.
   await page.locator("tbody tr").nth(1).getByRole("link").click();
+  // The list page has a bulk "Disposition" select too: wait until the details have replaced it.
+  await expect(page.locator("[data-page-title]")).toHaveText(/^Alert: /);
   await page.getByLabel("Disposition").selectOption("false-positive");
   await page.getByLabel("Comment (optional)").fill("Vendor documentation.");
   await page.getByRole("button", { name: "Close alert" }).click();
@@ -307,6 +309,7 @@ test("alert queue: intake folds repeats, triage, close with a disposition, escal
   await page.goto("/app/#/alerts");
   await expect(page.locator("#alert-status")).toHaveText("Showing 1–1 of 1");
   await page.locator("tbody tr").first().getByRole("link").click();
+  await expect(page.locator("[data-page-title]")).toHaveText(/^Alert: /);
   await page.getByRole("button", { name: "Escalate" }).click();
   await expect(page.locator("[data-page-title]")).toHaveText(/^Alert: paypal\[\.\]com/);
   await expect(page.locator('[aria-labelledby="ca-title"] .list li')).toHaveCount(1);
